@@ -13,6 +13,9 @@ class Workspace(object):
   It manages loading unit scripts and contains the global macro context.
 
   Attributes:
+    path (list of str): A list of directory names in which unit scripts
+      are being searched for. The unit scripts will actually also be
+      searched in subdirectories of the specified paths.
     context (ContextProvider): The global macro context.
     units (dict of str -> Unit): A dictionary that maps the full
       identifier of a :class:`Unit` to the actual object.
@@ -20,9 +23,10 @@ class Workspace(object):
 
   def __init__(self):
     super(Workspace, self).__init__()
+    self.path = os.getenv('CREATORPATH', '').split(os.pathsep)
+    self.path.insert(0, os.path.join(os.path.dirname(__file__), 'builtins'))
     self.context = WorkspaceContextProvider(self)
     self.units = {}
-
 
 class Unit(object):
   """
