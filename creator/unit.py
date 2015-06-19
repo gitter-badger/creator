@@ -108,3 +108,19 @@ class UnitContextProvider(creator.macro.MutableContextProvider):
     super().__init__()
     self.unit = weakref.ref(unit)
     self['ProjectPath'] = unit.project_path
+
+  def has_macro(self, name):
+    if super().has_macro(name):
+      return True
+    return self.unit.workspace.context.has_macro(name)
+
+  def get_macro(self, name, default=NotImplemented):
+    macro = super().get_macro(name, None)
+    if macro is None:
+      macro = self.unit.workspace.context.get_macro(name, None)
+    if macro not None:
+      return macro
+    elif default is not NotImplemented:
+      return default
+    else:
+      raise KeyError(name)
