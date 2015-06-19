@@ -109,6 +109,22 @@ class ExpressionNode(object, metaclass=abc.ABCMeta):
     raise NotImplementedError
 
 
+class TextNode(ExpressionNode):
+  """
+  The *TextNode* simply evaluates into the same text it was initialized
+  with. It does not the context to evaluate.
+  """
+
+  def __init__(self, text):
+    if not isinstance(text, str):
+      raise TypeError('text must be str', type(text))
+    super().__init__()
+    self.text = text
+
+  def eval(self, context, args):
+    return self.text
+
+
 class Macro(object):
   """
   Container for a macro expression tree bound to a :class:`ContextProvider`.
@@ -155,3 +171,18 @@ class Macro(object):
     """
 
     return self.node.eval(self.context, args)
+
+
+def pure_text(text):
+  """
+  Creates a :class:`Macro` from the specified *text* that will evaluate
+  into the exactly same text without variable expansion.
+
+  Args:
+    text (str): The text to create a macro for.
+  Returns:
+    Macro: The macro that will evaluate exactly into the specified *text*.
+  """
+
+  node = TextNode(text)
+  return Macro(node, MutableContextProvider())
