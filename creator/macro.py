@@ -95,6 +95,12 @@ class MutableContextProvider(ContextProvider):
       raise TypeError(message, type(value))
     self.macros[name] = value
 
+  def __delitem__(self, name):
+    try:
+      del self.macros[name]
+    except KeyError:
+      pass
+
   def has_macro(self, name):
     return name in self.macros
 
