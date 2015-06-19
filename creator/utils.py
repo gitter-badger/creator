@@ -1,7 +1,29 @@
 # Copyright (C) 2015 Niklas Rosenstein
 # All rights reserved.
 
+import os
 import re
+
+
+def set_suffix(filename, suffix):
+  """
+  Changes the suffix of the specified *filename* to *suffix*. If the
+  suffix is empty, the suffix will only be removed from the filename.
+  The dot must not be contained in the suffix.
+
+  Args:
+    filename (str): The filename to change.
+    suffix (str): The suffix to set.
+  Returns:
+    str: The filename with the changed suffix.
+  """
+
+  index = filename.rfind('.')
+  if index > filename.replace('\\', '/').rfind('/'):
+    filename = filename[:index]
+  if suffix:
+    filename += '.' + suffix
+  return filename
 
 
 def validate_unit_identifier(identifier):

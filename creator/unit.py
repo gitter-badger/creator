@@ -79,7 +79,11 @@ class WorkspaceContextProvider(creator.macro.MutableContextProvider):
 
   def __init__(self, workspace):
     super().__init__()
-    self.workspace = weakref.ref(workspace)
+    self._workspace = weakref.ref(workspace)
+
+  @property
+  def workspace(self):
+    return self._workspace()
 
   def has_macro(self, name):
     if super().has_macro(name):
@@ -90,12 +94,13 @@ class WorkspaceContextProvider(creator.macro.MutableContextProvider):
     # First things first, check if a macro with that name was assigned
     # to this context.
     macro = super().get_macro(name, None)
-    if macro is None:
-      if name in os.environ:
-        macro = creator.macro.pure_text(os.environ[name])
-      else:
-        raise KeyError(name)
-    return macro
+    if macro is not None:
+      return macro
+    if hasattr(creator.macro.Globals, name):
+      return getattr(creator.macro.Globals, name)
+    if name in os.environ:
+      return creator.macro.pure_text(os.environ[name])
+    raise KeyError(name)
 
 
 class UnitContextProvider(creator.macro.MutableContextProvider):
@@ -106,8 +111,16 @@ class UnitContextProvider(creator.macro.MutableContextProvider):
 
   def __init__(self, unit):
     super().__init__()
-    self.unit = weakref.ref(unit)
+    self._unit = weakref.ref(unit)
     self['ProjectPath'] = unit.project_path
+
+  @property
+  def unit(self):
+    return self._unit()
+
+  @property
+  def workspace(self):
+    return self._unit().workspace
 
   def has_macro(self, name):
     if super().has_macro(name):
@@ -124,3 +137,13 @@ class UnitContextProvider(creator.macro.MutableContextProvider):
       return default
     else:
       raise KeyError(name)
+
+  def get_namespace(self, name):
+    if name in self.unit.aliases:
+      identifier = self.unit.aliases[name]
+    else:
+      identifier = name
+    units = self.unit.workspace.units
+    if identifier in units:
+      return units[identifier].context
+    return super().get_namespace(name)
