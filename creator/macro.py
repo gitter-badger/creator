@@ -15,10 +15,21 @@ class ContextProvider(object, metaclass=abc.ABCMeta):
   """
 
   @abc.abstractmethod
+  def has_macro(self, name):
+    """
+    Args:
+      name (str): The name of the macro to check for existence.
+    Returns:
+      bool: True if the macro exists, False if not.
+    """
+
+    raise NotImplementedError
+
+  @abc.abstractmethod
   def get_macro(self, name, default=NotImplemented):
     """
     Args:
-      name (str): The name of the macro to retrieve
+      name (str): The name of the macro to retrieve.
       default (any): The default value to be returned if the macro
         can not be served. The default value is :class:`NotImplemented`
         which causes this function to raise a :class:`KeyError` instead.
@@ -30,6 +41,49 @@ class ContextProvider(object, metaclass=abc.ABCMeta):
     """
 
     raise NotImplementedError
+
+
+class MutableContextProvider(ContextProvider):
+  """
+  This implementation of the :class:`ContextProvider` interface
+  enables reading and writing macros via the Python ``__getitem__()``
+  and ``__setitem__()`` interface and stores these internally. If a
+  string is set with ``__setitem__()``, it will automatically be parsed
+  into a :class:`Macro` and bound to this :class:`ContextProvider`.
+
+  Attributes:
+    macros (dict of str -> Macro): The internal dictionary mapping the
+      macro names with the actual macro objects.
+  """
+
+  def __init__(self):
+    super().__init__()
+    self.macros = {}
+
+  def __getitem__(self, name):
+    return self.get_macro(name)
+
+  def __setitem__(self, name, value):
+    if isinstance(value, str):
+      # TODO
+      raise NotImplementedError('parsing of macros not implemented')
+    elif isinstance(value, ExpressionNode):
+      value = Macro(value, self)
+    elif not isinstance(value, Macro):
+      message = 'value must be str, ExpressionNode or Macro'
+      raise TypeError(message, type(value))
+    self.macros[name] = value
+
+  def has_macro(self, name):
+    return name in self.macros
+
+  def get_macro(self, name, default=NotImplemented):
+    if name in self.macros:
+      return self.macros[name]
+    elif default is not NotImplemented:
+      return default
+    else:
+      raise KeyError(name)
 
 
 class ExpressionNode(object, metaclass=abc.ABCMeta):
@@ -65,7 +119,7 @@ class Macro(object):
   """
 
   def __init__(self, node, context):
-    super(Macro, self).__init__()
+    super().__init__()
     self.node = node
     self.context = weakref.ref(context)
 
