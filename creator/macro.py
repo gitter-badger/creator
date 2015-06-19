@@ -2,6 +2,7 @@
 # All rights reserved.
 
 import abc
+import nr.strex
 import weakref
 
 
@@ -65,8 +66,7 @@ class MutableContextProvider(ContextProvider):
 
   def __setitem__(self, name, value):
     if isinstance(value, str):
-      # TODO
-      raise NotImplementedError('parsing of macros not implemented')
+      value = Macro(parse(value), self)
     elif isinstance(value, ExpressionNode):
       value = Macro(value, self)
     elif not isinstance(value, Macro):
@@ -113,6 +113,9 @@ class TextNode(ExpressionNode):
   """
   The *TextNode* simply evaluates into the same text it was initialized
   with. It does not the context to evaluate.
+
+  Attributes:
+    text (str): The text of the node.
   """
 
   def __init__(self, text):
@@ -123,6 +126,68 @@ class TextNode(ExpressionNode):
 
   def eval(self, context, args):
     return self.text
+
+
+class ConcatNode(ExpressionNode):
+  """
+  This expression node can contain a number of other nodes which are
+  simply concatenated on evaluation. It also implements a parse-time
+  performance improvement when appending raw text to the node as it
+  will simply update the last :class:`TextNode` (if present) instead
+  of creating a new node for each chunk.
+
+  Attributes:
+    nodes (list of ExpressionNode): The list of nodes.
+  """
+
+  def __init__(self):
+    super().__init__()
+    self.nodes = []
+
+  def append(self, node):
+    """
+    Appends a :class:`ExpressionNode` or text to this node.
+
+    Args:
+      node (ExpressionNode or str): The node or text to add.
+    """
+
+    if type(node) is TextNode:
+      text = node.text
+    elif isinstance(node, str):
+      text = node
+      node = None
+    else:
+      text = None
+
+    if text is not None:
+      if self.nodes and isinstance(self.nodes[-1], TextNode):
+        self.nodes.text += node
+        return
+      if node is None:
+        node = TextNode(text)
+
+    self.nodes.append(text)
+
+  def eval(self, context, args):
+    return ''.join(n.eval(context, args) for n in self.nodes)
+
+
+class Parser(object):
+  """
+  This class implements the process of parsing a string into an
+  expression node hierarchy.
+  """
+
+  def __init__(self):
+    super().__init__()
+    self.scanner = None
+
+  def parse(self, text):
+    self.scanner = nr.strex.Scanner(text)
+    root = ConcatNode()
+    # TODO
+    return root
 
 
 class Macro(object):
@@ -186,3 +251,7 @@ def pure_text(text):
 
   node = TextNode(text)
   return Macro(node, MutableContextProvider())
+
+
+parser = Parser()
+parse = parser.parse

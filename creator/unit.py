@@ -118,7 +118,7 @@ class UnitContextProvider(creator.macro.MutableContextProvider):
     macro = super().get_macro(name, None)
     if macro is None:
       macro = self.unit.workspace.context.get_macro(name, None)
-    if macro not None:
+    if macro is not None:
       return macro
     elif default is not NotImplemented:
       return default

@@ -18,3 +18,4 @@ if sys.version_info[0] != 3:
 from creator import macro
 from creator import platform
 from creator import unit
+from creator import utils
