@@ -14,3 +14,5 @@ __url__ = 'https://github.com/NiklasRosenstein/py-creator/wiki'
 import sys
 if sys.version_info[0] != 3:
   raise EnvironmentError('Creator {0} requires Python 3'.format(__version__))
+
+from creator import macro
