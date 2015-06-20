@@ -1,1 +1,1 @@
-nr.strex>=1.2
+nr.strex>=1.3
