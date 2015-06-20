@@ -503,13 +503,13 @@ class Globals:
 
   @Function
   def quote(context, args):
-    items = [n.eval(context, []) for n in args]
+    items = [n.eval(context, []).strip() for n in args]
     items = [shell.quote(x) for x in items]
     return ' '.join(items)
 
   @Function
   def quotelist(context, args):
-    items = ';'.join(n.eval(context, []) for n in args)
+    items = ';'.join(n.eval(context, []).strip() for n in args)
     items = creator.utils.split(items)
     items = [shell.quote(x) for x in items]
     return ' '.join(items)
@@ -519,7 +519,7 @@ class Globals:
     if len(args) != 3:
       message = 'subst requires 3 arguments, got {0}'.format(len(args))
       raise TypeError(message)
-    subject, replacement, items = [n.eval(context, []) for n in args]
+    subject, replacement, items = [n.eval(context, []).strip() for n in args]
     items = creator.utils.split(items)
     items = [x.replace(subject, replacement) for x in items]
     return creator.utils.join(items)
@@ -529,14 +529,14 @@ class Globals:
     if len(args) != 2:
       message = 'split requires 2 arguments, got {0}'.format(len(args))
       raise TypeError(message)
-    items, sep = [n.eval(context, []) for n in args]
+    items, sep = [n.eval(context, []).strip() for n in args]
     items = items.split(sep)
     return creator.utils.join(items)
 
   @Function
   def wildcard(context, args):
     dirname = context.get_macro('ProjectPath').eval(context, [])
-    patterns = [n.eval(context, []) for n in args]
+    patterns = [n.eval(context, []).strip() for n in args]
     items = []
     for pattern in patterns:
       items.extend(glob.iglob(os.path.join(dirname, pattern)))
@@ -547,7 +547,7 @@ class Globals:
     if len(args) != 2:
       message = 'suffix requires 2 arguments, got {0}'.format(len(args))
       raise TypeError(message)
-    items, suffix = [n.eval(context, []) for n in args]
+    items, suffix = [n.eval(context, []).strip() for n in args]
     items = creator.utils.split(items)
-    itmes = [creator.utils.set_suffix(x, suffix) for x in items]
+    items = [creator.utils.set_suffix(x, suffix) for x in items]
     return creator.utils.join(items)
