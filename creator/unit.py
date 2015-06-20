@@ -154,7 +154,7 @@ class Unit(object):
   def set_identifier(self, identifier):
     if not isinstance(identifier, str):
       raise TypeError('identifier must be str', type(identifier))
-    if not creator.utils.validate_unit_identifier(identifier):
+    if not creator.utils.validate_identifier(identifier):
       raise ValueError('invalid unit identifier', identifier)
     self._identifier = identifier
 

@@ -28,7 +28,7 @@ def set_suffix(filename, suffix):
   return filename
 
 
-def validate_unit_identifier(identifier):
+def validate_identifier(identifier):
   """
   Args:
     identifier (str): The identifier to test.
