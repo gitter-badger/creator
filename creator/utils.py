@@ -22,7 +22,9 @@ def set_suffix(filename, suffix):
   if index > filename.replace('\\', '/').rfind('/'):
     filename = filename[:index]
   if suffix:
-    filename += '.' + suffix
+    if not suffix.startswith('.'):
+      suffix = '.' + suffix
+    filename += suffix
   return filename
 
 
