@@ -251,6 +251,12 @@ class WorkspaceContextProvider(creator.macro.MutableContextProvider):
     macro = super().get_macro(name, None)
     if macro is not None:
       return macro
+    if name == 'Platform':
+      return creator.macro.TextNode(creator.platform.platform_name)
+    elif name == 'PlatformStandard':
+      return creator.macro.TextNode(creator.platform.platform_standard)
+    elif name == 'Architecture':
+      return creator.macro.TextNode(creator.platform.architecture)
     if not name.startswith('_') and hasattr(creator.macro.Globals, name):
       return getattr(creator.macro.Globals, name)
     if name in os.environ:
