@@ -6,6 +6,8 @@ import creator.utils
 import argparse
 import os
 import glob
+import traceback
+import sys
 
 
 parser = argparse.ArgumentParser(
@@ -26,6 +28,9 @@ parser.add_argument(
   'built by this invocation. If a name contains no namespace access '
   'character `:` it will be assumed relative to the main unit.', nargs='+',
   default=[])
+parser.add_argument(
+  '-S', '--no-summary', help='Do not display a summary after the build '
+  'process is complete or failed.', action='store_true')
 
 
 def main():
@@ -67,10 +72,50 @@ def main():
         name, curr_unit.identifier))
     targets.append(curr_unit.targets[name])
 
-  for target in targets:
-    if target.status == 'setup':
-      target.run_target()
+  try:
+    for target in targets:
+      recursively_run_target(target)
+  except Exception as exc:
+    traceback.print_exc()
+
+  # Collect a list of all targets, we need to check if any failed.
+  all_targets = []
+  for unit in workspace.units.values():
+    all_targets.extend(unit.targets.values())
+
+  # Print a summary?
+  if not args.no_summary:
+    print()
+    print("Summary:")
+    print("==================================================================")
+    for target in sorted(all_targets, key=lambda x: x.identifier):
+      print("* {0:20s} : {1}".format(target.identifier, target.status))
+
+  # Check if a target failed.
+  for target in all_targets:
+    with target.condition:
+      if target.status == 'failed':
+        return 1
+
+  return 0
+
+
+def recursively_run_target(target):
+  """
+  Recursively runs the dependencies of *target* and then the target itself.
+  """
+
+  for dep in target.dependencies:
+    with dep.condition:
+      if dep.status != 'setup':
+        continue
+    recursively_run_target(dep)
+
+  with target.condition:
+    if target.status != 'setup':
+      return
+  target.run_target()
 
 
 if __name__ == "__main__":
-  main()
+  sys.exit(main())
