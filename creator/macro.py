@@ -551,3 +551,21 @@ class Globals:
     items = creator.utils.split(items)
     items = [creator.utils.set_suffix(x, suffix) for x in items]
     return creator.utils.join(items)
+
+
+  @Function
+  def move(context, args):
+    if len(args) != 2:
+      message = 'move requires 2 arguments, got {0}'.format(len(args))
+      raise TypeError(message)
+    items, dirname = [n.eval(context, []).strip() for n in args]
+    if not os.path.isabs(dirname):
+      proj_path = context.get_macro('ProjectPath').eval(context, [])
+      dirname = os.path.join(proj_path, dirname)
+    result = []
+    for item in creator.utils.split(items):
+      relpath = os.path.relpath(item, proj_path)
+      result.append(os.path.join(dirname, item))
+    print(items)
+    print(result)
+    return creator.utils.join(result)
