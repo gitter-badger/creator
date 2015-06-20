@@ -52,8 +52,10 @@ ninja_parser.add_argument(
   action='store_true')
 
 
-def main():
-  args = parser.parse_args()
+def main(argv=None):
+  if argv is None:
+    argv = sys.argv[1:]
+  args = parser.parse_args(argv)
   workspace = creator.unit.Workspace()
   workspace.path.extend(args.unitpath)
   for define in args.define:
