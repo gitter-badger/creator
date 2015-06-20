@@ -3,6 +3,7 @@
 
 import creator.macro
 import creator.utils
+import creator.target
 import os
 import weakref
 

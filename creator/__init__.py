@@ -19,3 +19,4 @@ from creator import macro
 from creator import platform
 from creator import unit
 from creator import utils
+from creator import target
