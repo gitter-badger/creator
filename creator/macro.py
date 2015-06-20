@@ -66,7 +66,7 @@ class ContextProvider(object, metaclass=abc.ABCMeta):
     raise KeyError(name)
 
 
-class MutableContextProvider(ContextProvider):
+class MutableContext(ContextProvider):
   """
   This implementation of the :class:`ContextProvider` interface
   enables reading and writing macros via the Python ``__getitem__()``

@@ -29,7 +29,7 @@ class Workspace(object):
     super(Workspace, self).__init__()
     self.path = ['.', os.path.join(os.path.dirname(__file__), 'builtins')]
     self.path.extend(os.getenv('CREATORPATH', '').split(os.pathsep))
-    self.context = WorkspaceContextProvider(self)
+    self.context = WorkspaceContext(self)
     self.units = {}
 
   def find_unit(self, identifier):
@@ -107,7 +107,7 @@ class Unit(object):
     self.project_path = project_path
     self.identifier = identifier
     self.workspace = workspace
-    self.context = UnitContextProvider(self)
+    self.context = UnitContext(self)
     self.aliases = {}
     self.targets = {}
     self.scope = self._create_scope()
@@ -226,7 +226,7 @@ class Unit(object):
     exec(code, self.scope)
 
 
-class WorkspaceContextProvider(creator.macro.MutableContextProvider):
+class WorkspaceContext(creator.macro.MutableContext):
   """
   This class implements the :class:`creator.macro.ContextProvider`
   interface for the global macro context of a :class:`Workspace`.
@@ -264,7 +264,7 @@ class WorkspaceContextProvider(creator.macro.MutableContextProvider):
     raise KeyError(name)
 
 
-class UnitContextProvider(creator.macro.MutableContextProvider):
+class UnitContext(creator.macro.MutableContext):
   """
   This class implements the :class:`creator.macro.ContextProvider`
   interface for the local macro context of a :class:`Unit`.
