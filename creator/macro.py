@@ -346,7 +346,6 @@ class VarNode(ExpressionNode):
 
   def __init__(self, namespace, varname, args):
     super().__init__()
-    print("VarNode(%r, %r, %r)" % (namespace, varname, args))
     self.namespace = namespace
     self.varname = varname
     self.args = args
@@ -598,6 +597,4 @@ class Globals:
     for item in creator.utils.split(items):
       relpath = os.path.relpath(item, proj_path)
       result.append(os.path.join(dirname, item))
-    print(items)
-    print(result)
     return creator.utils.join(result)
