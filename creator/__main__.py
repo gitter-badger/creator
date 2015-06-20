@@ -89,7 +89,11 @@ def main():
     print("Summary:")
     print("==================================================================")
     for target in sorted(all_targets, key=lambda x: x.identifier):
-      print("* {0:20s} : {1}".format(target.identifier, target.status))
+      print("* {0:20s} : {1}".format(target.identifier, target.status), end='')
+      if target.message:
+        print(" ({0})".format(target.message))
+      else:
+        print()
 
   # Check if a target failed.
   for target in all_targets:

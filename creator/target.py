@@ -27,6 +27,9 @@ class Target(object, metaclass=abc.ABCMeta):
       A target will receive these statuses in the order read above where
       it makes sense (from pending to setup to skipped or running then to
       finished or failed).
+    message (str): A message that is usually only set when an error occured.
+      If an exception is raised during the execution of the target, it will
+      be set to the exception message.
     condition (threading.Condition): A condition variable that should
       be used in case some implementation wants to run targets in multiple
       threads.
@@ -68,11 +71,16 @@ class Target(object, metaclass=abc.ABCMeta):
       if self.status != 'pending':
         raise RuntimeError('{0} target can not be setup'.format(self.status))
 
+    message = None
     success = False
     try:
       success = self._setup_target()
+    except Exception as exc:
+      message = str(exc)
+      raise
     finally:
       with self.condition:
+        self.message = message
         self.status = 'setup' if success else 'failed'
 
     return success
@@ -104,11 +112,16 @@ class Target(object, metaclass=abc.ABCMeta):
 
       self.status = 'running'
 
+    message = None
     success = False
     try:
       success = self._run_target()
+    except Exception as exc:
+      message = str(exc)
+      raise
     finally:
       with self.condition:
+        self.message = message
         self.status = 'finished' if success else 'failed'
 
     return success
