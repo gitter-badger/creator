@@ -21,6 +21,11 @@ parser.add_argument(
   'identifier', help='The identifier of the unit script to run. If it '
   'is not specified, the only file with suffix `.crunit` in the current '
   'working directory is used.', default=None, nargs='?')
+parser.add_argument(
+  '-T', '--targets', help='One or more names of targets that are to be '
+  'built by this invocation. If a name contains no namespace access '
+  'character `:` it will be assumed relative to the main unit.', nargs='+',
+  default=[])
 
 
 def main():
@@ -47,8 +52,24 @@ def main():
     for target in unit.targets.values():
       target.setup_target()
 
-  # TODO
-  pass
+  # Collect the targets to be run and run them.
+  targets = []
+  for name in args.targets:
+    curr_unit = unit
+    if ':' in name:
+      unit_name, _, name = name.partition(':')
+      if unit_name not in workspace.units:
+        parser.error('no unit called "{0}"'.format(unit_name))
+      curr_unit = workspace.units[unit_name]
+
+    if name not in curr_unit.targets:
+      parser.error('no target called "{0}" in unit "{1}"'.format(
+        name, curr_unit.identifier))
+    targets.append(curr_unit.targets[name])
+
+  for target in targets:
+    if target.status == 'setup':
+      target.run_target()
 
 
 if __name__ == "__main__":
