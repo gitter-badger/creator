@@ -1,0 +1,18 @@
+# Copyright (C) 2015 Niklas Rosenstein
+# All rights reserved.
+
+C['name'] = 'Linux'
+
+C['binsuffix'] = ''
+C['binname'] = '$(suffix $0,$binsuffix)'
+
+C['objsuffix'] = 'o'
+C['objname'] = '$(suffix $0,$objsuffix)'
+
+C['libsuffix'] = 'a'
+C['libprefix'] = 'lib'
+C['libname'] = '$(addprefix $libprefix,$(suffix $0,$libsuffix))'
+
+C['dllsuffix'] = 'so'
+C['dllprefix'] = 'lib'
+C['dllname'] = '$(addprefix $dllprefix,$(suffix $0,$dllsuffix))'

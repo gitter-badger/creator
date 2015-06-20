@@ -1,0 +1,10 @@
+# Copyright (C) 2015 Niklas Rosenstein
+# All rights reserved.
+
+linux = load('platform.linux')
+unit.context.macros.update(linux.context.macros)
+
+C['name'] = 'Mac'
+
+del C['dllprefix']
+C['dllsuffix'] = 'dylib'

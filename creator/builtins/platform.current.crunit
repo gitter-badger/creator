@@ -1,0 +1,14 @@
+# Copyright (C) 2015 Niklas Rosenstein
+# All rights reserved.
+
+platform = eval('$Platform')
+if platform == 'Windows':
+  source = load('platform.nt')
+elif platform == 'Mac':
+  source = load('platform.mac')
+elif platform == 'Linux':
+  source = load('platform.linux')
+else:
+  raise EnvironmentError('unsupported platform "{0}"'.format(platform))
+
+unit.context.macros.update(source.context.macros)

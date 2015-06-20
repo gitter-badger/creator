@@ -1,0 +1,16 @@
+# Copyright (C) 2015 Niklas Rosenstein
+# All rights reserved.
+
+C['name'] = 'Windows_NT'
+
+C['binsuffix'] = 'exe'
+C['binname'] = '$(suffix $0,$binsuffix)'
+
+C['objsuffix'] = 'obj'
+C['objname'] = '$(suffix $0,$objsuffix)'
+
+C['libsuffix'] = 'exe'
+C['libname'] = '$(suffix $0,$libsuffix)'
+
+C['dllsuffix'] = 'dll'
+C['dllname'] = '$(suffix $0,$dllsuffix)'
