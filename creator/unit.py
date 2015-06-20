@@ -118,6 +118,14 @@ class Unit(object):
     unit script which can be executed with :meth:`run_unit_script`.
     """
 
+    def info(*args, **kwargs):
+      items = []
+      for arg in args:
+        if isinstance(arg, str):
+          arg = self.eval(arg, stack_depth=1)
+        items.append(arg)
+      print(*items, **kwargs)
+
     return {
       'unit': self,
       'workspace': self.workspace,
@@ -127,6 +135,7 @@ class Unit(object):
       'target': self.target,
       'eval': self.eval,
       'load': self.load,
+      'info': info,
     }
 
   def get_identifier(self):
@@ -190,8 +199,12 @@ class Unit(object):
     """
 
     macro = creator.macro.parse(text)
-    context = creator.macro.StackFrameContext(stack_depth + 1)
-    context = creator.macro.ChainContext(supp_context, context, self.context)
+    context = creator.macro.ChainContext(self.context)
+    if stack_depth >= 0:
+      sf_context = creator.macro.StackFrameContext(stack_depth + 1)
+      context.contexts.insert(0, sf_context)
+    if supp_context is not None:
+      context.contexts.insert(0, supp_context)
     return macro.eval(context, [])
 
   def load(self, identifier, alias=None):
