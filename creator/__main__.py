@@ -87,31 +87,35 @@ def main(argv=None):
 
 
 def cmd_build(args, workspace, unit):
-  # Collect the targets to be run and run them.
-  targets = []
-  for name in args.targets:
-    curr_unit = unit
-    if ':' in name:
-      unit_name, _, name = name.partition(':')
-      if unit_name not in workspace.units:
-        parser.error('no unit called "{0}"'.format(unit_name))
-      curr_unit = workspace.units[unit_name]
+  # Collect a list of all targets, we need to check if any failed.
+  all_targets = []
+  for unit in workspace.units.values():
+    all_targets.extend(unit.targets.values())
 
-    if name not in curr_unit.targets:
-      parser.error('no target called "{0}" in unit "{1}"'.format(
-        name, curr_unit.identifier))
-    targets.append(curr_unit.targets[name])
+
+  # Collect the targets to be run and run them.
+  if not args.targets:
+    targets = all_targets
+  else:
+    targets = []
+    for name in args.targets:
+      curr_unit = unit
+      if ':' in name:
+        unit_name, _, name = name.partition(':')
+        if unit_name not in workspace.units:
+          parser.error('no unit called "{0}"'.format(unit_name))
+        curr_unit = workspace.units[unit_name]
+
+      if name not in curr_unit.targets:
+        parser.error('no target called "{0}" in unit "{1}"'.format(
+          name, curr_unit.identifier))
+      targets.append(curr_unit.targets[name])
 
   try:
     for target in targets:
       recursively_run_target(target)
   except Exception as exc:
     traceback.print_exc()
-
-  # Collect a list of all targets, we need to check if any failed.
-  all_targets = []
-  for unit in workspace.units.values():
-    all_targets.extend(unit.targets.values())
 
   # Print a summary?
   if not args.no_summary:
@@ -165,6 +169,7 @@ def cmd_ninja(args, workspace, unit):
         writer.newline()
     if not args.stdout:
       print("creator: Exported to", args.output)
+
 
 def ninja_ident(s):
   """
