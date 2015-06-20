@@ -163,7 +163,8 @@ def cmd_ninja(args, workspace, unit):
         writer.rule(rule_name, entry['commands'])
         writer.build(entry['outputs'], rule_name, entry['inputs'])
         writer.newline()
-
+    if not args.stdout:
+      print("creator: Exported to", args.output)
 
 def ninja_ident(s):
   """
