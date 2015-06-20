@@ -7,6 +7,7 @@ import glob
 import nr.strex
 import os
 import string
+import sys
 import weakref
 
 
@@ -111,6 +112,88 @@ class MutableContextProvider(ContextProvider):
       return default
     else:
       raise KeyError(name)
+
+  def get_namespace(self, name):
+    raise KeyError(name)
+
+
+class ChainContext(ContextProvider):
+  """
+  This context chains multiple :class:`ContextProvider`s.
+  """
+
+  def __init__(self, *contexts):
+    super().__init__()
+    self.contexts = []
+    for context in contexts:
+      if context is not None:
+        if not isinstance(context, ContextProvider):
+          raise TypeError('expected ContextProvider', type(context))
+        self.contexts.append(context)
+
+  def has_macro(self, name):
+    for context in self.contexts:
+      if contexts.has_macro(name):
+        return True
+    return False
+
+  def get_macro(self, name, default=NotImplemented):
+    for context in self.contexts:
+      try:
+        return context.get_macro(name)
+      except KeyError:
+        pass
+    if default is NotImplemented:
+      raise KeyError(name)
+    return default
+
+  def get_namespace(self, name):
+    for context in self.contexts:
+      try:
+        return context.get_namespace(name)
+      except KeyError:
+        pass
+    raise KeyError(name)
+
+
+class StackFrameContext(ContextProvider):
+  """
+  This :class:`ContextProvider` implementation exposes the contents
+  of a Python stack frame.
+
+  Args:
+    stack_depth (int): The number of stacks to go backwards from the
+      calling stack frame to reach the frame that is supposed to be
+      exposed by this context.
+  """
+
+  def __init__(self, stack_depth=0):
+    super().__init__()
+    frame = sys._getframe()
+    for i in range(stack_depth + 1):
+      frame = frame.f_back
+    self.frame = frame
+
+  def has_macro(self, name):
+    frame = self.frame
+    if name in frame.f_locals or name in frame.f_globals:
+      return True
+    return False
+
+  def get_macro(self, name, default=NotImplemented):
+    frame = self.frame
+    if name in frame.f_locals:
+      value = frame.f_locals[name]
+    elif name in frame.f_globals:
+      value = frame.f_globals[name]
+    elif default is not NotImplemented:
+      return default
+    else:
+      raise KeyError(name)
+
+    if not isinstance(value, creator.macro.ExpressionNode):
+      value = creator.macro.TextNode(str(value))
+    return value
 
   def get_namespace(self, name):
     raise KeyError(name)
@@ -390,21 +473,6 @@ class Parser(object):
         return None
 
     return VarNode(ident, subident, args)
-
-
-def pure_text(text):
-  """
-  Creates a :class:`Macro` from the specified *text* that will evaluate
-  into the exactly same text without variable expansion.
-
-  Args:
-    text (str): The text to create a macro for.
-  Returns:
-    Macro: The macro that will evaluate exactly into the specified *text*.
-  """
-
-  node = TextNode(text)
-  return Macro(node, MutableContextProvider())
 
 
 parser = Parser()

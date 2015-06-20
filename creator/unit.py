@@ -170,22 +170,29 @@ class Unit(object):
       raise TypeError('func must be callable', type(func))
     if func.__name__ in self.targets:
       raise ValueError('target "{0}" already exists'.format(func.__name__))
-    target = creator.target.FuncTarget(func)
+    target = creator.target.ShellTarget(self, func.__name__, func)
     self.targets[func.__name__] = target
     return target
 
-  def eval(self, text):
+  def eval(self, text, supp_context=None, stack_depth=0):
     """
     Evaluates *text* as a macro string in the units context.
 
     Args:
       text (str): The text to evaluate.
+      supp_context (creator.macro.ContextProvider): A context that
+        will be taken into account additionally to the stack frame
+        and unit context or None.
+      stack_depth (int): The number of frames to go backwards from
+        the calling frame to use the local and global variables from.
     Returns:
       str: The result of the evaluation.
     """
 
     macro = creator.macro.parse(text)
-    return macro.eval(self.context, [])
+    context = creator.macro.StackFrameContext(stack_depth + 1)
+    context = creator.macro.ChainContext(supp_context, context, self.context)
+    return macro.eval(context, [])
 
   def load(self, identifier, alias=None):
     """
@@ -247,7 +254,7 @@ class WorkspaceContextProvider(creator.macro.MutableContextProvider):
     if not name.startswith('_') and hasattr(creator.macro.Globals, name):
       return getattr(creator.macro.Globals, name)
     if name in os.environ:
-      return creator.macro.pure_text(os.environ[name])
+      return creator.macro.TextNode(os.environ[name])
     raise KeyError(name)
 
 
