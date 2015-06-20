@@ -306,6 +306,9 @@ class UnitContext(creator.macro.MutableContext):
   def workspace(self):
     return self._unit().workspace
 
+  def get_aliases(self, name):
+    return [name, self.unit.identifier + ':' + name]
+
   def has_macro(self, name):
     if super().has_macro(name):
       return True
