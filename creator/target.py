@@ -5,6 +5,7 @@ import creator.macro
 import creator.unit
 import creator.utils
 import abc
+import os
 import threading
 import weakref
 
@@ -67,11 +68,9 @@ class Target(object, metaclass=abc.ABCMeta):
       if self.status != 'pending':
         raise RuntimeError('{0} target can not be setup'.format(self.status))
 
+    success = False
     try:
       success = self._setup_target()
-    except Exception:
-      success = False
-      raise
     finally:
       with self.condition:
         self.status = 'setup' if success else 'failed'
@@ -105,11 +104,9 @@ class Target(object, metaclass=abc.ABCMeta):
 
       self.status = 'running'
 
+    success = False
     try:
       success = self._run_target()
-    except Exception:
-      success = False
-      raise
     finally:
       with self.condition:
         self.status = 'finished' if success else 'failed'
@@ -203,12 +200,25 @@ class ShellTarget(Target):
     for command in commands:
       command = self.unit.eval(command, supp_context, stack_depth=1)
       eval_commands.append(command)
-    self.data.append([input_files, output_files, eval_commands])
+    self.data.append({
+      'inputs': creator.utils.split(input_files),
+      'outputs': creator.utils.split(output_files),
+      'commands': eval_commands
+    })
 
   def _setup_target(self):
     self.func()
     return True
 
   def _run_target(self):
-    # TODO
-    raise NotImplementedError
+    import subprocess, shlex
+    for entry in self.data:
+      # Make sure the directories of the output files exist.
+      for fn in entry['outputs']:
+        dirname = os.path.dirname(fn)
+        if not os.path.exists(dirname):
+          os.makedirs(dirname)
+      for command in entry['commands']:
+        print('$', command)
+        subprocess.call(shlex.split(command))
+    return True
