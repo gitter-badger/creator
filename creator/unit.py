@@ -77,7 +77,12 @@ class Workspace(object):
 
     filename = self.find_unit(identifier)
     unit = Unit(os.path.dirname(filename), identifier, self)
-    unit.run_unit_script(filename)
+    self.units[identifier] = unit
+    try:
+      unit.run_unit_script(filename)
+    except Exception:
+      del self.units[identifier]
+      raise
     return unit
 
 
