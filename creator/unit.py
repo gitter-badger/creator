@@ -108,6 +108,10 @@ class Unit(object):
       script is being executed.
   """
 
+  # You can change this on a unit instance to change the behaviour
+  # of the target() function which creates an instance of this class.
+  ShellTargetCls = creator.target.ShellTarget
+
   def __init__(self, project_path, identifier, workspace):
     super(Unit, self).__init__()
     self.project_path = project_path
@@ -185,7 +189,7 @@ class Unit(object):
       raise TypeError('func must be callable', type(func))
     if func.__name__ in self.targets:
       raise ValueError('target "{0}" already exists'.format(func.__name__))
-    target = creator.target.ShellTarget(self, func.__name__, func)
+    target = self.ShellTargetCls(self, func.__name__, func)
     self.targets[func.__name__] = target
     return target
 
