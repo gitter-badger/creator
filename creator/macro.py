@@ -84,7 +84,7 @@ class MutableContextProvider(ContextProvider):
     self.macros = {}
 
   def __getitem__(self, name):
-    return self.get_macro(name)
+    return self.get_macro(name).eval(self, [])
 
   def __setitem__(self, name, value):
     if isinstance(value, str):
