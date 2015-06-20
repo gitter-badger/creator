@@ -1,1 +1,4 @@
 *.py[cod]
+ninja.build
+.ninja_deps
+.ninja_log
