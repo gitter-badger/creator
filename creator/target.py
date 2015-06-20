@@ -18,7 +18,8 @@ class Target(object, metaclass=abc.ABCMeta):
     dependencies (list of Target): A list of targets that are required
       to be executed before this target.
     status (str): The status of the target. One of the following values:
-      ``'pending', 'running', 'finished', 'failed'``.
+      ``'pending', 'setup', 'running', 'finished', 'failed'``. A target
+      will receive these statuses in the order read above.
     condition (threading.Condition): A condition variable that should
       be used in case some implementation wants to run targets in multiple
       threads.
@@ -30,13 +31,34 @@ class Target(object, metaclass=abc.ABCMeta):
     self.status = 'pending'
     self.condition = threading.Condition()
 
+  def setup_target(self):
+    """
+    All targets get the chance to do some setup work. This may finally
+    set up all the dependencies of the target or intialize internal data.
+    """
+
+    with self.condition:
+      if self.status != 'pending':
+        raise RuntimeError('{0} target can not be setup'.format(self.status))
+
+    try:
+      success = self._setup_target()
+    except Exception:
+      success = False
+      raise
+    finally:
+      with self.condition:
+        self.status = 'setup' if success else 'failed'
+
+    return success
+
   def run_target(self):
     """
     Does what the target needs to do and updates the target status.
     """
 
     with self.condition:
-      if self.status != 'pending':
+      if self.status != 'setup':
         raise RuntimeError('{0} target can not be run'.format(self.status))
       self.status = 'running'
 
@@ -52,6 +74,17 @@ class Target(object, metaclass=abc.ABCMeta):
     return success
 
   @abc.abstractmethod
+  def _setup_target(self):
+    """
+    Set up the targets internal data or dependencies.
+
+    Returns:
+      bool: True on success, False if an error occured.
+    """
+
+    return False
+
+  @abc.abstractmethod
   def _run_target(self):
     """
     Do what the target needs to do. This function is called from the
@@ -63,7 +96,6 @@ class Target(object, metaclass=abc.ABCMeta):
     """
 
     return False
-
 
 class FuncTarget(Target):
   """
@@ -132,6 +164,10 @@ class ShellTarget(Target):
       command = self.unit.eval(command, supp_context, stack_depth=1)
       eval_commands.append(command)
     self.data.append([input_files, output_files, eval_commands])
+
+  def _setup_target(self):
+    self.func()
+    return True
 
   def _run_target(self):
     # TODO

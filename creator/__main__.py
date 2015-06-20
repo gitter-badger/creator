@@ -41,6 +41,12 @@ def main():
     args.identifier = creator.utils.set_suffix(os.path.basename(files[0]), '')
 
   unit = workspace.load_unit(args.identifier)
+
+  # Set up all unit targets.
+  for unit in workspace.units.values():
+    for target in unit.targets.values():
+      target.setup_target()
+
   # TODO
   pass
 
