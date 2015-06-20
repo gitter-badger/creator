@@ -2,9 +2,11 @@
 # All rights reserved.
 
 import creator.macro
+import creator.unit
 import creator.utils
 import abc
 import threading
+import weakref
 
 
 class Target(object, metaclass=abc.ABCMeta):
@@ -15,21 +17,45 @@ class Target(object, metaclass=abc.ABCMeta):
   with the :attr:`condition` variable.
 
   Attributes:
+    unit (creator.unit.Unit): The unit that the target is owned by.
+    name (str): The name of the target in the scope of the unit.
     dependencies (list of Target): A list of targets that are required
       to be executed before this target.
     status (str): The status of the target. One of the following values:
-      ``'pending', 'setup', 'running', 'finished', 'failed'``. A target
-      will receive these statuses in the order read above.
+      ``'pending', 'setup', 'running', 'finished', 'failed'``, ``'skipped'``.
+      A target will receive these statuses in the order read above where
+      it makes sense (from pending to setup to skipped or running then to
+      finished or failed).
     condition (threading.Condition): A condition variable that should
       be used in case some implementation wants to run targets in multiple
       threads.
   """
 
-  def __init__(self):
+  def __init__(self, unit, name):
+    if not isinstance(unit, creator.unit.Unit):
+      raise TypeError('unit must be creator.unit.Unit', type(unit))
+    if not isinstance(name, str):
+      raise TypeError('name must be str', type(name))
+    if not creator.utils.validate_identifier(name):
+      raise ValueError('name is not a valid identifier', name)
     super().__init__()
+    self._unit = weakref.ref(unit)
+    self._name = name
     self.dependencies = []
     self.status = 'pending'
     self.condition = threading.Condition()
+
+  @property
+  def unit(self):
+    return self._unit()
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def identifier(self):
+    return self._unit().identifier + ':' + self._name
 
   def setup_target(self):
     """
@@ -55,11 +81,28 @@ class Target(object, metaclass=abc.ABCMeta):
   def run_target(self):
     """
     Does what the target needs to do and updates the target status.
+    This method will make sure that all dependencies of the target are
+    met, but will only result in an exception instead of running them
+    if they're not.
     """
 
     with self.condition:
       if self.status != 'setup':
-        raise RuntimeError('{0} target can not be run'.format(self.status))
+        message = '{0} target "{1}" can not be run'
+        raise RuntimeError(message.format(self.status, self.identifier))
+
+      # Make sure all dependencies are actually targets and have
+      # status "finished"
+      for dep in self.dependencies:
+        if not isinstance(dep, Target):
+          message = 'target "{0}" has an invalid type dependency {1!r}'
+          raise RuntimeError(message.format(self.identifier, dep))
+        with dep.condition:
+          if dep.status not in ('finished', 'skipped'):
+            message = 'target "{0}" dependency "{1}" has status "{2}"'
+            message = message.format(self.identifier, dep.name, dep.status)
+            raise RuntimeError(message)
+
       self.status = 'running'
 
     try:
@@ -97,6 +140,7 @@ class Target(object, metaclass=abc.ABCMeta):
 
     return False
 
+
 class FuncTarget(Target):
   """
   This :class:`Target` implementation wraps a Python function.
@@ -127,16 +171,12 @@ class ShellTarget(Target):
   for the input and output file macros.
 
   Args:
-    unit (creator.unit.Unit): The unit that owns the target.
-    name (str): The name of the target.
     func (callable): The Python function that adds content to the target.
     data (list): A list of the data that was added via :meth:`add`.
   """
 
   def __init__(self, unit, name, func):
-    super(ShellTarget, self).__init__()
-    self.unit = unit
-    self.name = name
+    super(ShellTarget, self).__init__(unit, name)
     self.func = func
     self.data = []
 
