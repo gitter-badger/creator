@@ -371,9 +371,10 @@ class VarNode(ExpressionNode):
 
     # Try to get the macro and evaluate it.
     try:
-      return context.get_macro(self.varname).eval(context, sub_args)
+      macro = context.get_macro(self.varname)
     except KeyError:
       return ''
+    return macro.eval(context, sub_args)
 
   def substitute(self, ref_name, node):
     namespace, _, varname = ref_name.partition(':')
