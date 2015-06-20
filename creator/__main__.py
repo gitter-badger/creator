@@ -3,11 +3,14 @@
 
 import creator.unit
 import creator.utils
+import creator.target
+import creator.vendor.ninja_syntax as ninja
 import argparse
 import os
 import glob
-import traceback
+import re
 import sys
+import traceback
 
 
 parser = argparse.ArgumentParser(
@@ -20,17 +23,33 @@ parser.add_argument(
   '-P', '--unitpath', help='Add an additional path to search for unit '
   'scripts to the workspace.', default=[], action='append')
 parser.add_argument(
-  'identifier', help='The identifier of the unit script to run. If it '
-  'is not specified, the only file with suffix `.crunit` in the current '
-  'working directory is used.', default=None, nargs='?')
-parser.add_argument(
-  '-T', '--targets', help='One or more names of targets that are to be '
+  '-I', '--identifier', help='The identifier of the unit script to run. '
+  'If it is not specified, the only file with suffix `.crunit` in the current '
+  'working directory is used.')
+subparser = parser.add_subparsers(dest='command')
+
+
+build_parser = subparser.add_parser('build')
+build_parser.add_argument(
+  'targets', help='One or more names of targets that are to be '
   'built by this invocation. If a name contains no namespace access '
-  'character `:` it will be assumed relative to the main unit.', nargs='+',
+  'character `:` it will be assumed relative to the main unit.', nargs='*',
   default=[])
-parser.add_argument(
+build_parser.add_argument(
   '-S', '--no-summary', help='Do not display a summary after the build '
   'process is complete or failed.', action='store_true')
+
+
+ninja_parser = subparser.add_parser('ninja')
+ninja_parser.add_argument(
+  '--stdout', help='Outputs to stdout instead of to build.ninja',
+  action='store_true')
+ninja_parser.add_argument(
+  '-o', '--output', help='Target output file. Will be ignored if '
+  '--stdout is passed.', default='build.ninja')
+ninja_parser.add_argument(
+  '-f', '--force', help='Force overwrite the output file.',
+  action='store_true')
 
 
 def main():
@@ -57,6 +76,15 @@ def main():
     for target in a_unit.targets.values():
       target.setup_target()
 
+  if args.command == 'build':
+    return cmd_build(args, workspace, unit)
+  elif args.command == 'ninja':
+    return cmd_ninja(args, workspace, unit)
+  else:
+    raise RuntimeError('unexpected command', args.command)
+
+
+def cmd_build(args, workspace, unit):
   # Collect the targets to be run and run them.
   targets = []
   for name in args.targets:
@@ -102,6 +130,46 @@ def main():
         return 1
 
   return 0
+
+
+def cmd_ninja(args, workspace, unit):
+  if args.stdout:
+    writer = ninja.Writer(sys.stdout)
+  elif os.path.isfile(args.output) and not args.force:
+    ninja_parser.error('file "{0}" already exists.'.format(args.output))
+  else:
+    writer = ninja.Writer(open(args.output, 'w'))
+
+  # Export the ShellTarget's in all units to the Ninja file.
+  for unit in sorted(workspace.units.values(), key=lambda x: x.identifier):
+    if not unit.targets:
+      continue
+    writer.comment('Unit: {0}'.format(unit.identifier))
+    writer.newline()
+    for target in sorted(unit.targets.values(), key=lambda x: x.name):
+      writer.comment('Target: {0}'.format(target.identifier))
+      if not isinstance(target, creator.target.ShellTarget):
+        print('# Warning: Can not translate {0} "{1}" to ninja'.format(
+          type(target).__name__, target.identifier), file=sys.stderr)
+        continue
+      for index, entry in enumerate(target.data):
+        if len(entry['commands']) != 1:
+          print("# Warning: Target {0} lists multiple commands which is"
+            "not supported by ninja".format(target.identifier), file=sys.stderr)
+          continue
+        rule_name = ninja_ident(target.identifier + '_{0:04d}'.format(index))
+        writer.rule(rule_name, entry['commands'])
+        writer.build(entry['outputs'], rule_name, entry['inputs'])
+        writer.newline()
+
+
+def ninja_ident(s):
+  """
+  Converts the string *s* into an identifier that is acceptible by
+  ninja by replacing all invalid characters with an underscore.
+  """
+
+  return re.sub('[^A-Za-z0-9_]+', '_', s)
 
 
 def recursively_run_target(target):
