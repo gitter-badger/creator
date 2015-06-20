@@ -7,6 +7,10 @@ import os
 import weakref
 
 
+class UnitNotFoundError(Exception):
+  pass
+
+
 class Workspace(object):
   """
   The *Workspace* is basically the root of a *Creator* build session.
@@ -23,10 +27,59 @@ class Workspace(object):
 
   def __init__(self):
     super(Workspace, self).__init__()
-    self.path = os.getenv('CREATORPATH', '').split(os.pathsep)
-    self.path.insert(0, os.path.join(os.path.dirname(__file__), 'builtins'))
+    self.path = ['.', os.path.join(os.path.dirname(__file__), 'builtins')]
+    self.path.extend(os.getenv('CREATORPATH', '').split(os.pathsep))
     self.context = WorkspaceContextProvider(self)
     self.units = {}
+
+  def find_unit(self, identifier):
+    """
+    Searches for the filename of a unit in the search :attr:`path`.
+
+    Args:
+      identifier (str): The identifier of the unit to load.
+    Returns:
+      str: The path to the unit script.
+    Raises:
+      UnitNotFoundError: If the unit could not be found.
+    """
+
+    filename = identifier + '.crunit'
+    for dirname in self.path:
+      if not os.path.isdir(dirname):
+        continue
+      path = os.path.join(dirname, filename)
+      if os.path.isfile(path):
+        return path
+      for item in os.listdir(dirname):
+        path = os.path.join(dirname, item, filename)
+        if os.path.isfile(path):
+          return path
+
+    raise UnitNotFoundError(identifier)
+
+  def load_unit(self, identifier):
+    """
+    If the unit with the specified *identifier* is not already loaded,
+    it will be searched and executed and saved in the :attr:`units`
+    dictionary.
+
+    Args:
+      identifier (str): The identifier of the unit to load.
+    Returns:
+      Unit: The loaded unit.
+    Raises:
+      UnitNotFoundError: If the unit could not be found.
+    """
+
+    if identifier in self.units:
+      return self.units[identifier]
+
+    filename = self.find_unit(identifier)
+    unit = Unit(os.path.dirname(filename), identifier, self)
+    unit.run_unit_script(filename)
+    return unit
+
 
 class Unit(object):
   """
@@ -43,6 +96,10 @@ class Unit(object):
     context (ContextProvider): The local context of the unit.
     aliases (dict of str -> str): A mapping of alias names to fully
       qualified unit identifiers.
+    targets (dict of str -> creator.target.Target): A dictionary
+      that maps the name of a target to the target object.
+    scope (dict): A dictionary that contains the scope in which the unit
+      script is being executed.
   """
 
   def __init__(self, project_path, identifier, workspace):
@@ -52,6 +109,25 @@ class Unit(object):
     self.workspace = workspace
     self.context = UnitContextProvider(self)
     self.aliases = {}
+    self.targets = {}
+    self.scope = self._create_scope()
+
+  def _create_scope(self):
+    """
+    Private. Creates a Python dictionary that acts as the scope for the
+    unit script which can be executed with :meth:`run_unit_script`.
+    """
+
+    return {
+      'unit': self,
+      'workspace': self.workspace,
+      'C': self.context,
+      'G': self.workspace.context,
+      'defined': self.defined,
+      'target': self.target,
+      'eval': self.eval,
+      'load': self.load,
+    }
 
   def get_identifier(self):
     return self._identifier
@@ -73,6 +149,74 @@ class Unit(object):
 
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
+
+  def defined(self, name):
+    """
+    Returns:
+      bool: True if a variable with the specified *name* is defined.
+    """
+
+    return self.context.has_macro(name)
+
+  def target(self, func):
+    """
+    Wraps a Python function and returns a :class:`creator.target.FuncTarget`
+    object that will be filled with information by the wrapped function.
+    Targets are filled after all unit scripts are loaded and not
+    immediately when a script is run.
+    """
+
+    if not callable(func):
+      raise TypeError('func must be callable', type(func))
+    if func.__name__ in self.targets:
+      raise ValueError('target "{0}" already exists'.format(func.__name__))
+    target = creator.target.FuncTarget(func)
+    self.targets[func.__name__] = target
+    return target
+
+  def eval(self, text):
+    """
+    Evaluates *text* as a macro string in the units context.
+
+    Args:
+      text (str): The text to evaluate.
+    Returns:
+      str: The result of the evaluation.
+    """
+
+    macro = creator.macro.parse(text)
+    return macro.eval(self.context, [])
+
+  def load(self, identifier, alias=None):
+    """
+    Loads a unit script and makes it available globally. If *alias* is
+    specified, an alias will be created in this unit that referers to
+    the loaded unit.
+
+    Args:
+      identifier (str): The identifer of the unit to load.
+      alias (str, optional): An alias for the unit inside this unit.
+    Returns:
+      Unit: The loaded unit.
+    """
+
+    unit = self.workspace.load_unit(identifier)
+    if alias is not None:
+      if not isinstance(alias, str):
+        raise TypeError('alias must be str', type(alias))
+      self.aliases[alias] = identifier
+    return unit
+
+  def run_unit_script(self, filename):
+    """
+    Executes the Python unit script at *filename* for this unit.
+    """
+
+    with open(filename) as fp:
+      code = compile(fp.read(), filename, 'exec', dont_inherit=True)
+    self.scope['__file__'] = filename
+    self.scope['__name__'] = '__creator__'
+    exec(code, self.scope)
 
 
 class WorkspaceContextProvider(creator.macro.MutableContextProvider):
@@ -100,7 +244,7 @@ class WorkspaceContextProvider(creator.macro.MutableContextProvider):
     macro = super().get_macro(name, None)
     if macro is not None:
       return macro
-    if hasattr(creator.macro.Globals, name):
+    if not name.startswith('_') and hasattr(creator.macro.Globals, name):
       return getattr(creator.macro.Globals, name)
     if name in os.environ:
       return creator.macro.pure_text(os.environ[name])
