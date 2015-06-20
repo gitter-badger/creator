@@ -220,5 +220,9 @@ class ShellTarget(Target):
           os.makedirs(dirname)
       for command in entry['commands']:
         print('$', command)
-        subprocess.call(shlex.split(command))
+        command_args = shlex.split(command)
+        code = subprocess.call(command_args)
+        if code != 0:
+          message = '"{0}" exited with returncode {1}'
+          raise RuntimeError(message.format(command_args[0], code))
     return True
