@@ -40,7 +40,7 @@ class ContextProvider(object, metaclass=abc.ABCMeta):
         can not be served. The default value is :class:`NotImplemented`
         which causes this function to raise a :class:`KeyError` instead.
     Returns:
-      Macro: The macro associated with the specified *name*.
+      ExpressionNode: The macro associated with the specified *name*.
     Raises:
       KeyError: If there is no macro with the specified name and the
         *default* parameter has the value :class:`NotImplemented`.
@@ -72,11 +72,11 @@ class MutableContext(ContextProvider):
   enables reading and writing macros via the Python ``__getitem__()``
   and ``__setitem__()`` interface and stores these internally. If a
   string is set with ``__setitem__()``, it will automatically be parsed
-  into a :class:`Macro` and bound to this :class:`ContextProvider`.
+  into an expression tree.
 
   Attributes:
-    macros (dict of str -> Macro): The internal dictionary mapping the
-      macro names with the actual macro objects.
+    macros (dict of str -> ExpressionNode): The internal dictionary
+      mapping the macro names with the actual macro objects.
   """
 
   def __init__(self):
@@ -88,12 +88,17 @@ class MutableContext(ContextProvider):
 
   def __setitem__(self, name, value):
     if isinstance(value, str):
-      value = Macro(parse(value), self)
-    elif isinstance(value, ExpressionNode):
-      value = Macro(value, self)
-    elif not isinstance(value, Macro):
-      message = 'value must be str, ExpressionNode or Macro'
+      value = parse(value)
+    elif not isinstance(value, ExpressionNode):
+      message = 'value must be str or ExpressionNode'
       raise TypeError(message, type(value))
+    # Make sure the macro does not contain a reference to itself.
+    # It will be resolved by expanding the original value immediately
+    # in the expression hierarchy.
+    old_value = self.macros.get(name)
+    if old_value is not None:
+      for ref_name in self.get_aliases(name):
+        value = value.substitute(ref_name, old_value)
     self.macros[name] = value
 
   def __delitem__(self, name):
@@ -101,6 +106,29 @@ class MutableContext(ContextProvider):
       del self.macros[name]
     except KeyError:
       pass
+
+  def get_aliases(self, name):
+    """
+    This function can be implemented by subclasses to specify under
+    what aliases the same macro can be found. The default implementation
+    simply returns *name*.
+
+    Args:
+      name (str): The name that was passed to :meth:`__setitem__`.
+    Returns:
+      list of str: A list of aliases.
+    """
+
+    return [name]
+
+  def function(self, func):
+    """
+    Decorator for a Python callable to be wrapped in a :class:`Function`
+    expression node and assigned to the *MutableContext*.
+    """
+
+    self.macros[func.__name__] = Function(func)
+    return self.macros[func.__name__]
 
   def has_macro(self, name):
     return name in self.macros
@@ -221,6 +249,23 @@ class ExpressionNode(object, metaclass=abc.ABCMeta):
 
     raise NotImplementedError
 
+  @abc.abstractmethod
+  def substitute(self, ref_name, node):
+    """
+    This function must be implemented by nodes that expand a variable
+    name like the :meth:`VarNode` and must replace any occurence that
+    expands the reference named by *ref_name* with *node*.
+
+    Args:
+      ref_name (str): The name of the variable. May contain a double
+        colon ``:`` to separate namespace and variable name.
+      node (ExpressionNode): The node to insert in place.
+    Returns:
+      ExpressionNode: *self* or *node*.
+    """
+
+    return self
+
 
 class TextNode(ExpressionNode):
   """
@@ -239,6 +284,9 @@ class TextNode(ExpressionNode):
 
   def eval(self, context, args):
     return self.text
+
+  def substitute(self, ref_name, node):
+    return self
 
 
 class ConcatNode(ExpressionNode):
@@ -285,16 +333,22 @@ class ConcatNode(ExpressionNode):
   def eval(self, context, args):
     return ''.join(n.eval(context, args) for n in self.nodes)
 
+  def substitute(self, ref_name, node):
+    for i in range(len(self.nodes)):
+      self.nodes[i] = self.nodes[i].substitute(ref_name, node)
+    return self
+
 
 class VarNode(ExpressionNode):
   """
   This expression node implements a variable expansion or function call.
   """
 
-  def __init__(self, ident, subident, args):
+  def __init__(self, namespace, varname, args):
     super().__init__()
-    self.ident = ident
-    self.subident = subident
+    print("VarNode(%r, %r, %r)" % (namespace, varname, args))
+    self.namespace = namespace
+    self.varname = varname
     self.args = args
 
   def eval(self, context, args):
@@ -303,63 +357,36 @@ class VarNode(ExpressionNode):
 
     # Does the identifier access an argument?
     arg_index = None
-    if self.subident is None:
+    if not self.namespace:
       try:
-        arg_index = int(self.ident)
+        arg_index = int(self.varname)
       except ValueError:
         pass
     if arg_index is not None and arg_index >= 0 and arg_index < len(args):
       return args[arg_index].eval(context, sub_args)
 
     # Are we accessing a namespace? Use that context instead.
-    if self.subident is not None:
-      context = context.get_namespace(self.ident)
-      varname = self.subident
-    else:
-      varname = self.ident
+    if self.namespace:
+      context = context.get_namespace(self.namespace)
 
     # Try to get the macro and evaluate it.
     try:
-      return context.get_macro(varname).eval(context, sub_args)
+      return context.get_macro(self.varname).eval(context, sub_args)
     except KeyError:
       return ''
 
+  def substitute(self, ref_name, node):
+    namespace, _, varname = ref_name.partition(':')
+    if not varname:
+      varname, namespace = namespace, varname
+    if self.namespace and self.namespace != namespace:
+      return self
+    elif not self.namespace and namespace:
+      return self
+    elif self.varname != varname:
+      return self
 
-class Macro(ExpressionNode):
-  """
-  Container for a macro expression tree bound to a :class:`ContextProvider`.
-
-  Attributes:
-    node (ExpressionNode): The root node of the evaluation hierarchy.
-    context (ContextProvider): The context that the macro is bound to.
-  """
-
-  def __init__(self, node, context):
-    super().__init__()
-    self.node = node
-    self.context = context
-
-  def get_node(self):
-    return self._node
-
-  def set_node(self, node):
-    if not isinstance(node, ExpressionNode):
-      raise TypeError('node must be ExpressionNode', type(node))
-    self._node = node
-
-  def get_context(self):
-    return self._context()
-
-  def set_context(self, context):
-    if not isinstance(context, ContextProvider):
-      raise TypeError('context must be ContextProvider', type(context))
-    self._context = weakref.ref(context)
-
-  node = property(get_node, set_node)
-  context = property(get_context, set_context)
-
-  def eval(self, context, args):
-    return self.node.eval(self.context, args)
+    return node
 
 
 class Function(ExpressionNode):
@@ -379,6 +406,9 @@ class Function(ExpressionNode):
 
   def eval(self, context, args):
     return self.func(context, args)
+
+  def substitute(self, ref_name, node):
+    return self
 
 
 class Parser(object):
@@ -442,23 +472,24 @@ class Parser(object):
       scanner.next()
       is_call = True
 
-    # Read the identifier that is to be accessed.
-    ident = scanner.consume_set(self.CHARS_IDENTIFIER)
-    if not ident:
+    # Read the namespace or variable name identifier.
+    varname = scanner.consume_set(self.CHARS_IDENTIFIER)
+    if not varname:
       return None
 
     # Check if a namespace is accessed, read the sub identifier.
-    subident = None
+    namespace = None
     if scanner.char == self.CHAR_NAMESPACEACCESS:
       scanner.next()
-      subident = scanner.consume_set(self.CHARS_IDENTIFIER)
+      namespace = varname
+      varname = scanner.consume_set(self.CHARS_IDENTIFIER)
 
     # If its a function call, consume beginning whitespace.
     args = []
     if is_call:
       scanner.consume_set(self.CHARS_WHITESPACE)
       closing_at = self.CHAR_PCLOSE + self.CHAR_ARGSEP
-      while scanner.char:
+      while scanner.char and scanner.char != self.CHAR_PCLOSE:
         node = self._parse_arg(scanner, closing_at)
         args.append(node)
         if scanner.char == self.CHAR_ARGSEP:
@@ -472,7 +503,7 @@ class Parser(object):
         scanner.restore(cursor)
         return None
 
-    return VarNode(ident, subident, args)
+    return VarNode(namespace, varname, args)
 
 
 parser = Parser()
