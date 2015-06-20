@@ -245,7 +245,7 @@ class Unit(object):
     with open(filename) as fp:
       code = compile(fp.read(), filename, 'exec', dont_inherit=True)
     self.scope['__file__'] = filename
-    self.scope['__name__'] = '__creator__'
+    self.scope['__name__'] = '__crunit__'
     exec(code, self.scope)
 
 
