@@ -3,5 +3,6 @@
 # All rights reserved.
 
 import creator.__main__
+import sys
 if __name__ == "__main__":
   sys.exit(creator.__main__.main())
