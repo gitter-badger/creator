@@ -146,6 +146,9 @@ class Unit(object):
       'eval': self.eval,
       'load': self.load,
       'info': info,
+      'split': creator.utils.split,
+      'join': creator.utils.join,
+      'foreach_split': self.foreach_split,
     }
 
   def get_identifier(self):
@@ -236,6 +239,16 @@ class Unit(object):
         raise TypeError('alias must be str', type(alias))
       self.aliases[alias] = identifier
     return unit
+
+  def foreach_split(self, inputs, outputs, stack_depth=0):
+    """
+    Shortcut for ``zip(split(eval(inputs)), split(eval(outputs)))``.
+    """
+
+    eval = self.eval
+    inputs = creator.utils.split(eval(inputs, stack_depth=stack_depth + 1))
+    outputs = creator.utils.split(eval(outputs, stack_depth=stack_depth + 1))
+    return zip(inputs, outputs)
 
   def run_unit_script(self, filename):
     """
