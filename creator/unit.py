@@ -78,6 +78,16 @@ class Workspace(object):
 
     filename = self.find_unit(identifier)
     unit = Unit(os.path.dirname(filename), identifier, self)
+
+    # For all macros defined globally that access a namespace,
+    # transfer them to the unit now.
+    unit_access = identifier + ':'
+    for key, value in list(self.context.macros.items()):
+      if key.startswith(unit_access):
+        del self.context[key]
+        key = key[len(unit_access):]
+        unit.context[key] = value
+
     self.units[identifier] = unit
     try:
       unit.run_unit_script(filename)
@@ -178,7 +188,16 @@ class Unit(object):
       bool: True if a variable with the specified *name* is defined.
     """
 
-    return self.context.has_macro(name)
+    namespace, _, varname = name.partition(':')
+    if not varname:
+      namespace, varname = varname, namespace
+    context = self.context
+    if namespace:
+      try:
+        context = context.get_namespace(namespace)
+      except KeyError:
+        return False
+    return context.has_macro(varname)
 
   def target(self, func):
     """
