@@ -7,4 +7,4 @@ unit.context.macros.update(linux.context.macros)
 C['name'] = 'Mac'
 
 del C['dllprefix']
-C['dllsuffix'] = 'dylib'
+C['dll'] = 'dylib'
