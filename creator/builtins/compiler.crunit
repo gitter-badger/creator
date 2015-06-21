@@ -2,12 +2,18 @@
 # All rights reserved.
 
 platform = eval('$Platform')
+standard = eval('$PlatformStandard')
 if platform == 'Windows':
-  laod_name = 'platform.nt'
+  if standard == 'Posix':
+    load_name = 'compiler.gcc'
+  elif standard == 'NT':
+    load_name = 'compiler.msvc'
+  else:
+    raise EnvironmentError('unexpected Windows standard "{0}"'.format(standard))
 elif platform == 'Linux':
-  load_name = 'platform.linux'
+  load_name = 'compiler.gcc'
 elif platform == 'Darwin':
-  load_name = 'platform.darwin'
+  load_name = 'compiler.clang'
 else:
   raise EnvironmentError('unsupported platform "{0}"'.format(platform))
 

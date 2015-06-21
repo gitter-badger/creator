@@ -21,7 +21,7 @@ elif sys.platform.startswith('cygwin'):
   platform_name = 'Windows'
 elif sys.platform.startswith('darwin'):
   platform_standard = 'Posix'
-  platform_name = 'Mac'
+  platform_name = 'Darwin'
 else:
   raise EnvironmentError('unsupported Platform "{0}"'.format(sys.platform))
 

@@ -2,17 +2,21 @@
 # All rights reserved.
 
 C['cc'] = 'gcc'
-C['c++'] = 'g++'
-C['cobjc'] = 'gobjc'
-
-C['c'] = C['compile_only'] = 'c'
-C['debug'] = '-g'
-C['Wall'] = '-Wall'
-C['w'] = '-w'
-C['cpp11'] = '-std=c++11'
+C['cpp'] = 'g++'
+C['compileonly'] = '-c'
+C['wall'] = '-Wall'
+C['stdc++11'] = '-std=c++11'
+C['g'] = '-g'
 
 C['include'] = '$(quotelist $(addprefix -I,$0))'
 C['define'] = '$(quotelist $(addprefix -D,$0))'
+
+C['asmout'] = '-o $(quote $0)'  # Assmebler File
+C['objout'] = '-o $(quote $0)'  # Object File
+C['binout'] = '-o $(quote $0)'  # Executable File
+C['dbgout'] = '-o $(quote $0)'  # .PDB file
+C['prcout'] = '-o $(quote $0)'  # Precompile Header File
+C['lnkout'] = '-o $(quote $0)'
 
 C['O0'] = '-O0'
 C['O1'] = '-O1'

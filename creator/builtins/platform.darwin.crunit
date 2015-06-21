@@ -4,7 +4,7 @@
 linux = load('platform.linux')
 unit.context.macros.update(linux.context.macros)
 
-C['name'] = 'Mac'
+C['name'] = 'Darwin'
 
 del C['dllprefix']
 C['dll'] = 'dylib'
