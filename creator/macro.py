@@ -367,7 +367,7 @@ class VarNode(ExpressionNode):
       except ValueError:
         pass
     if arg_index is not None and arg_index >= 0 and arg_index < len(args):
-      return args[arg_index].eval(context, sub_args)
+      return args[arg_index].eval(context, sub_args).strip()
 
     # Are we accessing a namespace? Use that context instead.
     if self.namespace:
@@ -378,7 +378,7 @@ class VarNode(ExpressionNode):
       macro = context.get_macro(self.varname)
     except KeyError:
       return ''
-    return macro.eval(context, sub_args)
+    return macro.eval(context, sub_args).strip()
 
   def substitute(self, ref_name, node):
     namespace, varname = creator.utils.parse_var(ref_name)
@@ -600,6 +600,19 @@ class Globals:
     items = creator.utils.split(items)
     items = [creator.utils.set_suffix(x, suffix) for x in items]
     return creator.utils.join(items)
+
+  @Function
+  def prefix(context, args):
+    if len(args) != 2:
+      message = 'prefix requires 2 arguments, got {0}'.format(len(args))
+      raise TypeError(message)
+    items, prefix = [n.eval(context, []).strip() for n in args]
+    result = []
+    for item in creator.utils.split(items):
+      dirname, basename = os.path.split(item)
+      basename = prefix + basename
+      result.append(os.path.join(dirname, basename))
+    return creator.utils.join(result)
 
   @Function
   def move(context, args):
