@@ -295,7 +295,7 @@ class WorkspaceContext(creator.macro.MutableContext):
 
   def __setitem__(self, name, value):
     namespace, name = creator.utils.parse_var(name)
-    if namespace:
+    if namespace and namespace in self.workspace.units:
       self.workspace.units[namespace].context[name] = value
     else:
       super().__setitem__(name, value)
