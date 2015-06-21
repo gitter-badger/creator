@@ -584,15 +584,12 @@ class Globals:
 
   @Function
   def move(context, args):
-    if len(args) != 2:
-      message = 'move requires 2 arguments, got {0}'.format(len(args))
+    if len(args) != 3:
+      message = 'move requires 3 arguments, got {0}'.format(len(args))
       raise TypeError(message)
-    items, dirname = [n.eval(context, []).strip() for n in args]
-    if not os.path.isabs(dirname):
-      proj_path = context.get_macro('ProjectPath').eval(context, [])
-      dirname = os.path.join(proj_path, dirname)
+    items, base, new_base = [n.eval(context, []).strip() for n in args]
     result = []
     for item in creator.utils.split(items):
-      relpath = os.path.relpath(item, proj_path)
-      result.append(os.path.join(dirname, item))
+      relpath = os.path.relpath(item, base)
+      result.append(os.path.join(new_base, relpath))
     return creator.utils.join(result)
