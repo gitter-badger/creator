@@ -159,6 +159,7 @@ class Unit(object):
       'split': creator.utils.split,
       'join': creator.utils.join,
       'foreach_split': self.foreach_split,
+      'raw': creator.macro.TextNode,
     }
 
   def get_identifier(self):
@@ -294,9 +295,9 @@ class WorkspaceContext(creator.macro.MutableContext):
     return self._workspace()
 
   def __setitem__(self, name, value):
-    namespace, name = creator.utils.parse_var(name)
+    namespace, varname = creator.utils.parse_var(name)
     if namespace and namespace in self.workspace.units:
-      self.workspace.units[namespace].context[name] = value
+      self.workspace.units[namespace].context[varname] = value
     else:
       super().__setitem__(name, value)
 
@@ -348,11 +349,6 @@ class UnitContext(creator.macro.MutableContext):
 
   def get_aliases(self, name):
     return [name, self.unit.identifier + ':' + name]
-
-  def has_macro(self, name):
-    if super().has_macro(name):
-      return True
-    return self.unit.workspace.context.has_macro(name)
 
   def get_macro(self, name, default=NotImplemented):
     macro = super().get_macro(name, None)

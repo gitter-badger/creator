@@ -556,7 +556,13 @@ class Globals:
     return ' '.join(items)
 
   @Function
-  def quotelist(context, args):
+  def quoteall(context, args):
+    items = ';'.join(n.eval(context, []).strip() for n in args)
+    items = [shlex.quote(x) for x in creator.utils.split(items)]
+    return creator.utils.join(items)
+
+  @Function
+  def quotesplit(context, args):
     items = ';'.join(n.eval(context, []).strip() for n in args)
     items = creator.utils.split(items)
     items = [shlex.quote(x) for x in items]
@@ -574,12 +580,8 @@ class Globals:
 
   @Function
   def split(context, args):
-    if len(args) != 2:
-      message = 'split requires 2 arguments, got {0}'.format(len(args))
-      raise TypeError(message)
-    items, sep = [n.eval(context, []).strip() for n in args]
-    items = items.split(sep)
-    return creator.utils.join(items)
+    items = ';'.join(n.eval(context, []).strip() for n in args)
+    return ' '.join(creator.utils.split(items))
 
   @Function
   def wildcard(context, args):
@@ -610,3 +612,9 @@ class Globals:
       relpath = os.path.relpath(item, base)
       result.append(os.path.join(new_base, relpath))
     return creator.utils.join(result)
+
+  @Function
+  def dir(context, args):
+    items = ';'.join(n.eval(context, []) for n in args)
+    items = creator.utils.split(items)
+    return creator.utils.join(os.path.dirname(x) for x in items)
