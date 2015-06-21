@@ -6,6 +6,7 @@ import abc
 import glob
 import nr.strex
 import os
+import shlex
 import string
 import sys
 import weakref
@@ -203,10 +204,11 @@ class StackFrameContext(ContextProvider):
     self.frame = frame
 
   def has_macro(self, name):
-    frame = self.frame
-    if name in frame.f_locals or name in frame.f_globals:
-      return True
-    return False
+    try:
+      self.get_macro(name)
+    except KeyError:
+      return False
+    return True
 
   def get_macro(self, name, default=NotImplemented):
     frame = self.frame
@@ -219,8 +221,11 @@ class StackFrameContext(ContextProvider):
     else:
       raise KeyError(name)
 
-    if not isinstance(value, creator.macro.ExpressionNode):
+    if isinstance(value, str):
       value = creator.macro.TextNode(str(value))
+    if not isinstance(value, creator.macro.ExpressionNode):
+      raise KeyError(name)
+
     return value
 
   def get_namespace(self, name):
@@ -536,14 +541,14 @@ class Globals:
   @Function
   def quote(context, args):
     items = [n.eval(context, []).strip() for n in args]
-    items = [shell.quote(x) for x in items]
+    items = [shlex.quote(x) for x in items]
     return ' '.join(items)
 
   @Function
   def quotelist(context, args):
     items = ';'.join(n.eval(context, []).strip() for n in args)
     items = creator.utils.split(items)
-    items = [shell.quote(x) for x in items]
+    items = [shlex.quote(x) for x in items]
     return ' '.join(items)
 
   @Function
