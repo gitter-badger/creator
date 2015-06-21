@@ -77,6 +77,7 @@ class Workspace(object):
       return self.units[identifier]
 
     filename = self.find_unit(identifier)
+    filename = os.path.abspath(filename)
     unit = Unit(os.path.dirname(filename), identifier, self)
 
     # For all macros defined globally that access a namespace,
