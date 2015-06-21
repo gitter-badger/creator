@@ -381,15 +381,20 @@ class VarNode(ExpressionNode):
 
   def substitute(self, ref_name, node):
     namespace, varname = creator.utils.parse_var(ref_name)
+    matches = True
     if self.namespace and self.namespace != namespace:
-      return self
+      matches = False
     elif not self.namespace and namespace:
-      return self
+      matches = False
     elif self.varname != varname:
-      return self
+      matches = False
 
-    return node
+    if matches:
+      return node
 
+    for i in range(len(self.args)):
+      self.args[i] = self.args[i].substitute(ref_name, node)
+    return self
 
 class Function(ExpressionNode):
   """
