@@ -2,13 +2,12 @@
 # Copyright (C) 2015 Niklas Rosenstein
 # All rights reserved.
 
-import creator
 import setuptools
 
 long_description = ''
 setuptools.setup(
   name='creator',
-  version=creator.__version__,
+  version='0.0.1',
   description='software build automation tool',
   long_description=long_description,
   author='Niklas Rosenstein',
