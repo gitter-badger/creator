@@ -159,17 +159,21 @@ def cmd_ninja(args, workspace, unit):
         print('# Warning: Can not translate {0} "{1}" to ninja'.format(
           type(target).__name__, target.identifier), file=sys.stderr)
         continue
+      phonies = []
       for index, entry in enumerate(target.data):
         if len(entry['commands']) != 1:
           print("# Warning: Target {0} lists multiple commands which is"
             "not supported by ninja".format(target.identifier), file=sys.stderr)
           continue
+        phonies.extend(entry['outputs'])
         rule_name = ninja_ident(target.identifier + '_{0:04d}'.format(index))
         writer.rule(rule_name, entry['commands'])
         writer.build(entry['outputs'], rule_name, entry['inputs'])
         writer.newline()
-    if not args.stdout:
-      print("creator: Exported to", args.output)
+      writer.build(ninja_ident(target.identifier), 'phony', phonies)
+
+  if not args.stdout:
+    print("creator: Exported to", args.output)
 
 
 def ninja_ident(s):
