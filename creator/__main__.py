@@ -78,7 +78,9 @@ def main(argv=None):
     for target in a_unit.targets.values():
       target.setup_target()
 
-  if args.command == 'build':
+  if args.command is None:
+    return 0
+  elif args.command == 'build':
     return cmd_build(args, workspace, unit)
   elif args.command == 'ninja':
     return cmd_ninja(args, workspace, unit)
@@ -91,7 +93,6 @@ def cmd_build(args, workspace, unit):
   all_targets = []
   for unit in workspace.units.values():
     all_targets.extend(unit.targets.values())
-
 
   # Collect the targets to be run and run them.
   if not args.targets:
