@@ -6,7 +6,6 @@ import abc
 import glob
 import nr.strex
 import os
-import shlex
 import string
 import sys
 import weakref
@@ -552,20 +551,20 @@ class Globals:
   @Function
   def quote(context, args):
     items = [n.eval(context, []).strip() for n in args]
-    items = [shlex.quote(x) for x in items]
+    items = [creator.utils.quote(x) for x in items]
     return ' '.join(items)
 
   @Function
   def quoteall(context, args):
     items = ';'.join(n.eval(context, []).strip() for n in args)
-    items = [shlex.quote(x) for x in creator.utils.split(items)]
+    items = [creator.utils.quote(x) for x in creator.utils.split(items)]
     return creator.utils.join(items)
 
   @Function
   def quotesplit(context, args):
     items = ';'.join(n.eval(context, []).strip() for n in args)
     items = creator.utils.split(items)
-    items = [shlex.quote(x) for x in items]
+    items = [creator.utils.quote(x) for x in items]
     return ' '.join(items)
 
   @Function

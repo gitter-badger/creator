@@ -3,6 +3,19 @@
 
 import os
 import re
+import shlex
+
+
+def quote(s):
+  """
+  Better implementation of :func:`shlex.quote` which uses single-quotes
+  on Windows, which are not supported however.
+  """
+
+  if os.name == 'nt' and os.sep == '\\':
+    return '"' + s.replace('"', '\\"') + '"'
+  else:
+    return shlex.quote(s)
 
 
 def set_suffix(filename, suffix):
