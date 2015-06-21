@@ -196,7 +196,7 @@ class Unit(object):
         context = context.get_namespace(namespace)
       except KeyError:
         return False
-    return context.has_macro(varname)
+    return context.has_macro(varname) or self.workspace.context.has_macro(name)
 
   def target(self, func):
     """
