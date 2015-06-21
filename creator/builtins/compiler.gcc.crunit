@@ -1,0 +1,23 @@
+# Copyright (C) 2015 Niklas Rosenstein
+# All rights reserved.
+
+C['cc'] = 'gcc'
+C['c++'] = 'g++'
+C['cobjc'] = 'gobjc'
+
+C['c'] = C['compile_only'] = 'c'
+C['debug'] = '-g'
+C['Wall'] = '-Wall'
+C['w'] = '-w'
+C['cpp11'] = '-std=c++11'
+
+C['include'] = '$(quotelist $(addprefix -I,$0))'
+C['define'] = '$(quotelist $(addprefix -D,$0))'
+
+C['O0'] = '-O0'
+C['O1'] = '-O1'
+C['O2'] = '-O2'
+C['O3'] = '-O3'
+C['Os'] = '-Os'
+C['Ofast'] = '-Ofast'
+C['Og'] = '-Og'

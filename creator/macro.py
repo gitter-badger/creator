@@ -566,11 +566,10 @@ class Globals:
 
   @Function
   def wildcard(context, args):
-    dirname = context.get_macro('ProjectPath').eval(context, [])
     patterns = [n.eval(context, []).strip() for n in args]
     items = []
     for pattern in patterns:
-      items.extend(glob.iglob(os.path.join(dirname, pattern)))
+      items.extend(glob.iglob(pattern))
     return creator.utils.join(items)
 
   @Function
@@ -582,7 +581,6 @@ class Globals:
     items = creator.utils.split(items)
     items = [creator.utils.set_suffix(x, suffix) for x in items]
     return creator.utils.join(items)
-
 
   @Function
   def move(context, args):

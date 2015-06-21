@@ -1,0 +1,42 @@
+# Copyright (C) 2015 Niklas Rosenstein
+# All rights reserved.
+
+C['cc'] = 'cl /nologo'
+C['cx'] = 'cl /nologo'
+C['link'] = 'link /nologo'
+
+# Debugging
+C['debug'] = '/Zi /g'
+
+# Warning levels
+C['Wall'] = '/Wall'
+C['Werr'] = '/WX'
+C['Wd'] = '/w'
+
+# Include/Define parameters
+C['inc'] = '$(addprefix /I,$(quote $0))'
+C['def'] = '$(addprefix /D,$(quote $0))'
+
+# Compilation output modifiers
+C['c'] = '/c'  # compile only
+C['E'] = '/P'  # preprocess to file
+
+# Output file specifiers
+C['asmout'] = '/Fa$(quote $0)'  # Assmebler File
+C['objout'] = '/Fo$(quote $0)'  # Object File
+C['exeout'] = '/Fe$(quote $0)'  # Executable File
+C['dbgout'] = '/Fd$(quote $0)'  # .PDB file
+C['prcout'] = '/Fp$(quote $0)'  # Precompile Header File
+C['lnkout'] = '/OUT:$(quote $0)'
+
+# Optimization
+C['O1'] = '/O1'
+C['O2'] = '/O2'
+C['Od'] = '/Od'
+C['Og'] = '/Og'
+C['Ox'] = '/Ox'
+C['Os'] = '/Os'
+C['Ot'] = '/Ot'
+
+# Other flags
+C['showincludes'] = '/showIncludes'
