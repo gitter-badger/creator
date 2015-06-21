@@ -496,6 +496,7 @@ class Parser(object):
           scanner.next()
         elif scanner.char == self.CHAR_PCLOSE:
           break
+        scanner.consume_set(self.CHARS_WHITESPACE)
       if scanner.char == self.CHAR_PCLOSE:
         scanner.next()
       else:
