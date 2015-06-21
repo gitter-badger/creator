@@ -3,7 +3,7 @@
 
 platform = eval('$Platform')
 if platform == 'Windows':
-  laod_name = 'platform.nt'
+  load_name = 'platform.nt'
 elif platform == 'Linux':
   load_name = 'platform.linux'
 elif platform == 'Darwin':

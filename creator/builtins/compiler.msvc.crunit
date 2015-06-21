@@ -10,12 +10,8 @@ C['g'] = '/Zi /g'
 C['include'] = '$(addprefix /I,$(quote $0))'
 C['define'] = '$(addprefix /D,$(quote $0))'
 
-C['asmout'] = '/Fa$(quote $0)'  # Assmebler File
-C['objout'] = '/Fo$(quote $0)'  # Object File
-C['binout'] = '/Fe$(quote $0)'  # Executable File
-C['dbgout'] = '/Fd$(quote $0)'  # .PDB file
-C['prcout'] = '/Fp$(quote $0)'  # Precompile Header File
-C['lnkout'] = '/OUT:$(quote $0)'
+C['objout'] = '/Fo$(quote $0)'
+C['binout'] = '/Fe$(quote $0)'
 
 C['O0'] = ''
 C['O1'] = '/O1'

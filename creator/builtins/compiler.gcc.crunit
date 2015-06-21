@@ -11,12 +11,8 @@ C['g'] = '-g'
 C['include'] = '$(quotelist $(addprefix -I,$0))'
 C['define'] = '$(quotelist $(addprefix -D,$0))'
 
-C['asmout'] = '-o $(quote $0)'  # Assmebler File
-C['objout'] = '-o $(quote $0)'  # Object File
-C['binout'] = '-o $(quote $0)'  # Executable File
-C['dbgout'] = '-o $(quote $0)'  # .PDB file
-C['prcout'] = '-o $(quote $0)'  # Precompile Header File
-C['lnkout'] = '-o $(quote $0)'
+C['objout'] = '-o $(quote $0)'
+C['binout'] = '-o $(quote $0)'
 
 C['O0'] = '-O0'
 C['O1'] = '-O1'
