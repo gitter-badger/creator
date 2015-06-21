@@ -102,7 +102,7 @@ def cmd_build(args, workspace, unit):
     for name in args.targets:
       curr_unit = unit
       if ':' in name:
-        unit_name, _, name = name.partition(':')
+        unit_name, name = creator.utils.parse_var(name)
         if unit_name not in workspace.units:
           parser.error('no unit called "{0}"'.format(unit_name))
         curr_unit = workspace.units[unit_name]

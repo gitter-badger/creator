@@ -381,9 +381,7 @@ class VarNode(ExpressionNode):
     return macro.eval(context, sub_args)
 
   def substitute(self, ref_name, node):
-    namespace, _, varname = ref_name.partition(':')
-    if not varname:
-      varname, namespace = namespace, varname
+    namespace, varname = creator.utils.parse_var(ref_name)
     if self.namespace and self.namespace != namespace:
       return self
     elif not self.namespace and namespace:

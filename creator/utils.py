@@ -40,6 +40,18 @@ def validate_identifier(identifier):
   return bool(re.match('^[A-Za-z0-9\-\._]+$', identifier))
 
 
+def parse_var(var):
+  """
+  Parses a variable name with an optional namespace access and
+  returns a tuple of ``(namespace, varname)``.
+  """
+
+  namespace, _, varname = var.partition(':')
+  if not varname:
+    namespace, varname = varname, namespace
+  return (namespace, varname)
+
+
 def split(text):
   """
   Splits text by semicolon and returns a list of the result. The semicolon

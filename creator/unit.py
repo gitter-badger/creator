@@ -188,9 +188,7 @@ class Unit(object):
       bool: True if a variable with the specified *name* is defined.
     """
 
-    namespace, _, varname = name.partition(':')
-    if not varname:
-      namespace, varname = varname, namespace
+    namespace, varname = creator.utils.parse_var(name)
     context = self.context
     if namespace:
       try:
@@ -295,6 +293,13 @@ class WorkspaceContext(creator.macro.MutableContext):
   def workspace(self):
     return self._workspace()
 
+  def __setitem__(self, name, value):
+    namespace, name = creator.utils.parse_var(name)
+    if namespace:
+      self.workspace.units[namespace].context[name] = value
+    else:
+      super().__setitem__(name, value)
+
   def has_macro(self, name):
     if super().has_macro(name):
       return True
@@ -317,6 +322,9 @@ class WorkspaceContext(creator.macro.MutableContext):
     if name in os.environ:
       return creator.macro.TextNode(os.environ[name])
     raise KeyError(name)
+
+  def get_namespace(self, name):
+    return self.workspace.units[name].context
 
 
 class UnitContext(creator.macro.MutableContext):
