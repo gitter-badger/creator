@@ -426,6 +426,8 @@ class Parser(object):
   CHARS_IDENTIFIER = string.ascii_letters + string.digits + '-_.#<@'
   CHAR_POPEN = '('
   CHAR_PCLOSE = ')'
+  CHAR_BOPEN = '{'
+  CHAR_BCLOSE = '}'
   CHAR_NAMESPACEACCESS = ':'
   CHAR_ARGSEP = ','
 
@@ -473,9 +475,14 @@ class Parser(object):
 
     # This is a function call if we have an opening parentheses.
     is_call = False
+    is_braced = False
     if scanner.char == self.CHAR_POPEN:
-      scanner.next()
       is_call = True
+      scanner.next()
+    elif scanner.char == self.CHAR_BOPEN:
+      is_braced = True
+      scanner.next()
+      scanner.consume_set(self.CHARS_WHITESPACE)
 
     # Read the namespace or variable name identifier.
     varname = scanner.consume_set(self.CHARS_IDENTIFIER)
@@ -508,6 +515,12 @@ class Parser(object):
         # No closing parenthesis? Bad call.
         scanner.restore(cursor)
         return None
+    elif is_braced:
+      scanner.consume_set(self.CHARS_WHITESPACE)
+      if scanner.char != self.CHAR_BCLOSE:
+        scanner.restore(cursor)
+        return None
+      scanner.next()
 
     return VarNode(namespace, varname, args)
 
