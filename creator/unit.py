@@ -22,6 +22,8 @@ import creator.macro
 import creator.utils
 import creator.target
 import os
+import shlex
+import sys
 import weakref
 
 
@@ -146,28 +148,24 @@ class Unit(object):
     unit script which can be executed with :meth:`run_unit_script`.
     """
 
-    def info(*args, **kwargs):
-      items = []
-      for arg in args:
-        if isinstance(arg, str):
-          arg = self.eval(arg, stack_depth=1)
-        items.append(arg)
-      print(*items, **kwargs)
-
     return {
       'unit': self,
       'workspace': self.workspace,
       'C': self.context,
       'G': self.workspace.context,
       'defined': self.defined,
-      'target': self.target,
       'eval': self.eval,
-      'load': self.load,
-      'info': info,
-      'split': creator.utils.split,
-      'join': creator.utils.join,
+      'exit': sys.exit,
+      'confirm': self.confirm,
       'foreach_split': self.foreach_split,
+      'info': self.info,
+      'join': creator.utils.join,
+      'load': self.load,
       'raw': creator.macro.TextNode,
+      'split': creator.utils.split,
+      'shell': self.shell,
+      'target': self.target,
+      'ExitCodeError': creator.utils.Shell.ExitCodeError,
     }
 
   def get_identifier(self):
@@ -266,6 +264,47 @@ class Unit(object):
         raise TypeError('alias must be str', type(alias))
       self.aliases[alias] = identifier
     return unit
+
+  def info(self, *args, **kwargs):
+    items = []
+    for arg in args:
+      if isinstance(arg, str):
+        arg = self.eval(arg, stack_depth=1)
+      items.append(arg)
+    print('[{0}]:'.format(self.identifier), *items, **kwargs)
+
+  def shell(self, command, stack_depth=0):
+    """
+    Issues a shell command that is first expanded.
+
+    Returns:
+      creator.utils.Shell: The object that contains the request data.
+    """
+
+    command = self.eval(command, stack_depth=stack_depth + 1)
+    return creator.utils.Shell(shlex.split(command))
+
+  def confirm(self, text, stack_depth=0):
+    """
+    Asks the user for a confirmation via stdin after expanding the
+    *text* and appending it with ``'[Y/n]``.
+
+    Args:
+      text (str): The text to print
+    Returns:
+      bool: True if the user said yes, False if he or she said no.
+    """
+
+    text = self.eval(text, stack_depth=stack_depth + 1)
+    while True:
+      response = input('[{0}]: {1} [Y/n]'.format(self.identifier, text))
+      response = response.strip().lower()
+      if response in ('y', 'yes'):
+        return True
+      elif response in ('n', 'no'):
+        return False
+      else:
+        print("Please reply Yes or No.", end=' ')
 
   def foreach_split(self, inputs, outputs, stack_depth=0):
     """
