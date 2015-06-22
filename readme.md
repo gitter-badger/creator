@@ -10,13 +10,13 @@ __Quick Reference__
 - [Unit Script Functions](https://github.com/NiklasRosenstein/creator/wiki/Units#unit-script-built-ins)
 - [Macro Functions](https://github.com/NiklasRosenstein/creator/wiki/Macros#functions)
 
-### Requirements
+__Requirements__
 
 - Python 3
 - [nr.strex][]
 - [ninja][]
 
-### Known Unit Scripts
+__List of Unit Scrips__
 
 - [c4dunit](https://github.com/NiklasRosenstein/c4dunit) - Build
   Cinema 4D plugins on Windows and Mac OS
