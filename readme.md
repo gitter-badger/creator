@@ -2,8 +2,8 @@
 ==========================================
 
 *Creator* is a Python based software build automation tool outputting
-[ninja][] build files. The project is licensed under the MIT license.
-Check out the [Wiki][] for more information!
+[ninja][] build files based on *Creator Unit Scripts*. The project is
+licensed under the MIT license. Check out the [Wiki][] for more information!
 
 __Quick Reference__
 
