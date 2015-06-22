@@ -65,6 +65,17 @@ def parse_var(var):
   return (namespace, varname)
 
 
+def create_var(namespace, varname):
+  """
+  Returns the full identifer to access the variable *varname* in
+  *namespace*.
+  """
+
+  if namespace:
+    return namespace + ':' + varname
+  return varname
+
+
 def split(text):
   """
   Splits text by semicolon and returns a list of the result. The semicolon

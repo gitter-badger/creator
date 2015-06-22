@@ -51,19 +51,13 @@ class ContextProvider(object, metaclass=abc.ABCMeta):
     return default
 
   @abc.abstractmethod
-  def get_namespace(self, name):
+  def get_namespace(self):
     """
-    Returns another :class:`ContextProvider` by name.
-
-    Args:
-      name (str): The name of the context to retrieve.
     Returns:
-      ContextProvider: The context with the specified name.
-    Raises:
-      KeyError: If the context can not be served.
+      str: The name of the context that is used to identify it globally.
     """
 
-    raise KeyError(name)
+    raise NotImplementedError
 
 
 class MutableContext(ContextProvider):
@@ -88,7 +82,7 @@ class MutableContext(ContextProvider):
 
   def __setitem__(self, name, value):
     if isinstance(value, str):
-      value = parse(value)
+      value = parse(value, self)
     elif not isinstance(value, ExpressionNode):
       message = 'value must be str or ExpressionNode'
       raise TypeError(message, type(value))
@@ -142,7 +136,7 @@ class MutableContext(ContextProvider):
       raise KeyError(name)
 
   def get_namespace(self, name):
-    raise KeyError(name)
+    raise NotImplementedError
 
 
 class ChainContext(ContextProvider):
@@ -348,29 +342,27 @@ class VarNode(ExpressionNode):
   This expression node implements a variable expansion or function call.
   """
 
-  def __init__(self, namespace, varname, args):
+  def __init__(self, varname, args, context):
     super().__init__()
-    self.namespace = namespace
     self.varname = varname
+    self.context = weakref.ref(context)
     self.args = args
 
   def eval(self, context, args):
+    if self.context:
+      context = self.context()
+
     # Evaluate the arguments to the function.
     sub_args = [TextNode(n.eval(context, args)) for n in self.args]
 
     # Does the identifier access an argument?
     arg_index = None
-    if not self.namespace:
-      try:
-        arg_index = int(self.varname)
-      except ValueError:
-        pass
+    try:
+      arg_index = int(self.varname)
+    except ValueError:
+      pass
     if arg_index is not None and arg_index >= 0 and arg_index < len(args):
       return args[arg_index].eval(context, sub_args).strip()
-
-    # Are we accessing a namespace? Use that context instead.
-    if self.namespace:
-      context = context.get_namespace(self.namespace)
 
     # Try to get the macro and evaluate it.
     try:
@@ -380,21 +372,16 @@ class VarNode(ExpressionNode):
     return macro.eval(context, sub_args).strip()
 
   def substitute(self, ref_name, node):
-    namespace, varname = creator.utils.parse_var(ref_name)
-    matches = True
-    if self.namespace and self.namespace != namespace:
-      matches = False
-    elif not self.namespace and namespace:
-      matches = False
-    elif self.varname != varname:
-      matches = False
-
-    if matches:
+    if ref_name == self.varname:
       return node
-
+    elif self.context():
+      namespace = self.context().get_namespace()
+      if ref_name == creator.utils.create_var(namespace, self.varname):
+        return node
     for i in range(len(self.args)):
       self.args[i] = self.args[i].substitute(ref_name, node)
     return self
+
 
 class Function(ExpressionNode):
   """
@@ -425,7 +412,7 @@ class Parser(object):
   """
 
   CHARS_WHITESPACE = string.whitespace
-  CHARS_IDENTIFIER = string.ascii_letters + string.digits + '_.<@'
+  CHARS_IDENTIFIER = string.ascii_letters + string.digits + '_.<@:'
   CHAR_POPEN = '('
   CHAR_PCLOSE = ')'
   CHAR_BOPEN = '{'
@@ -433,7 +420,7 @@ class Parser(object):
   CHAR_NAMESPACEACCESS = ':'
   CHAR_ARGSEP = ','
 
-  def parse(self, text):
+  def parse(self, text, context):
     """
     Args:
       text (str): The text to parse into an expression tree.
@@ -441,10 +428,12 @@ class Parser(object):
       ConcatNode: The root node of the hierarchy.
     """
 
+    if context is not None and not isinstance(context, ContextProvider):
+      raise TypeError('context must be None or ContextProvider', type(context))
     scanner = nr.strex.Scanner(text.strip())
-    return self._parse_arg(scanner, closing_at='')
+    return self._parse_arg(scanner, context, closing_at='')
 
-  def _parse_arg(self, scanner, closing_at):
+  def _parse_arg(self, scanner, context, closing_at):
     root = ConcatNode()
     char = scanner.char
     while scanner and char not in closing_at:
@@ -452,7 +441,7 @@ class Parser(object):
         char = scanner.next()
         node = None
         if char != '$':
-          node = self._parse_macro(scanner)
+          node = self._parse_macro(scanner, context)
         if node:
           root.append(node)
           char = scanner.char
@@ -472,7 +461,7 @@ class Parser(object):
 
     return root
 
-  def _parse_macro(self, scanner):
+  def _parse_macro(self, scanner, context):
     cursor = scanner.state()
 
     # This is a function call if we have an opening parentheses.
@@ -491,20 +480,13 @@ class Parser(object):
     if not varname:
       return None
 
-    # Check if a namespace is accessed, read the sub identifier.
-    namespace = None
-    if scanner.char == self.CHAR_NAMESPACEACCESS:
-      scanner.next()
-      namespace = varname
-      varname = scanner.consume_set(self.CHARS_IDENTIFIER)
-
     # If its a function call, consume beginning whitespace.
     args = []
     if is_call:
       scanner.consume_set(self.CHARS_WHITESPACE)
       closing_at = self.CHAR_PCLOSE + self.CHAR_ARGSEP
       while scanner.char and scanner.char != self.CHAR_PCLOSE:
-        node = self._parse_arg(scanner, closing_at)
+        node = self._parse_arg(scanner, context, closing_at)
         args.append(node)
         if scanner.char == self.CHAR_ARGSEP:
           scanner.next()
@@ -524,7 +506,7 @@ class Parser(object):
         return None
       scanner.next()
 
-    return VarNode(namespace, varname, args)
+    return VarNode(varname, args, context)
 
 
 parser = Parser()

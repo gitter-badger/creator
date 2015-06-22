@@ -5,7 +5,7 @@ C['cc'] = 'gcc'
 C['cpp'] = 'g++'
 C['compileonly'] = '-c'
 C['wall'] = '-Wall'
-C['stdc++11'] = '-std=c++11'
+C['cpp11'] = '-std=c++11'
 C['g'] = '-g'
 
 C['include'] = '$(quotelist $(addprefix -I,$0))'

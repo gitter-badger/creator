@@ -18,4 +18,4 @@ else:
   raise EnvironmentError('unsupported platform "{0}"'.format(platform))
 
 ref = load(load_name)
-unit.context.macros.update(ref.context.macros)
+unit.context.update(ref.context)

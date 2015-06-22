@@ -128,9 +128,9 @@ class Unit(object):
     self.project_path = project_path
     self.identifier = identifier
     self.workspace = workspace
-    self.context = UnitContext(self)
     self.aliases = {}
     self.targets = {}
+    self.context = UnitContext(self)
     self.scope = self._create_scope()
 
   def _create_scope(self):
@@ -190,6 +190,7 @@ class Unit(object):
       bool: True if a variable with the specified *name* is defined.
     """
 
+    return self.context.has_macro(name)
     namespace, varname = creator.utils.parse_var(name)
     context = self.context
     if namespace:
@@ -230,13 +231,13 @@ class Unit(object):
       str: The result of the evaluation.
     """
 
-    macro = creator.macro.parse(text)
     context = creator.macro.ChainContext(self.context)
     if stack_depth >= 0:
       sf_context = creator.macro.StackFrameContext(stack_depth + 1)
       context.contexts.insert(0, sf_context)
     if supp_context is not None:
       context.contexts.insert(0, supp_context)
+    macro = creator.macro.parse(text, context)
     return macro.eval(context, [])
 
   def load(self, identifier, alias=None):
@@ -290,46 +291,38 @@ class WorkspaceContext(creator.macro.MutableContext):
   def __init__(self, workspace):
     super().__init__()
     self._workspace = weakref.ref(workspace)
+    self['Platform'] = creator.macro.TextNode(creator.platform.platform_name)
+    self['PlatformStandard'] = creator.macro.TextNode(
+      creator.platform.platform_standard)
+    self['Architecture'] = creator.macro.TextNode(
+      creator.platform.architecture)
 
   @property
   def workspace(self):
     return self._workspace()
 
-  def __setitem__(self, name, value):
-    namespace, varname = creator.utils.parse_var(name)
-    if namespace and namespace in self.workspace.units:
-      self.workspace.units[namespace].context[varname] = value
-    else:
-      super().__setitem__(name, value)
-
   def has_macro(self, name):
-    if super().has_macro(name):
-      return True
-    return name in os.environ
+    try:
+      self.get_macro(name)
+    except KeyError:
+      return False
+    return True
 
   def get_macro(self, name, default=NotImplemented):
-    # First things first, check if a macro with that name was assigned
-    # to this context.
     macro = super().get_macro(name, None)
     if macro is not None:
       return macro
-    if name == 'Platform':
-      return creator.macro.TextNode(creator.platform.platform_name)
-    elif name == 'PlatformStandard':
-      return creator.macro.TextNode(creator.platform.platform_standard)
-    elif name == 'Architecture':
-      return creator.macro.TextNode(creator.platform.architecture)
     if not name.startswith('_') and hasattr(creator.macro.Globals, name):
       return getattr(creator.macro.Globals, name)
     if name in os.environ:
       return creator.macro.TextNode(os.environ[name])
     raise KeyError(name)
 
-  def get_namespace(self, name):
-    return self.workspace.units[name].context
+  def get_namespace(self):
+    return ''
 
 
-class UnitContext(creator.macro.MutableContext):
+class UnitContext(creator.macro.ContextProvider):
   """
   This class implements the :class:`creator.macro.ContextProvider`
   interface for the local macro context of a :class:`Unit`.
@@ -348,26 +341,50 @@ class UnitContext(creator.macro.MutableContext):
   def workspace(self):
     return self._unit().workspace
 
-  def get_aliases(self, name):
-    return [name, self.unit.identifier + ':' + name]
+  def _prepare_name(self, name):
+    namespace, varname = creator.utils.parse_var(name)
+    if namespace in self.unit.aliases:
+      namespace = self.unit.aliases[namespace]
+    else:
+      namespace = self.unit.identifier
+    return creator.utils.create_var(namespace, varname)
+
+  def __getitem__(self, name):
+    name = self._prepare_name(name)
+    return self.workspace.context[name]
+
+  def __setitem__(self, name, value):
+    if isinstance(value, str):
+      value = creator.macro.parse(value, self)
+    if not isinstance(value, creator.macro.ExpressionNode):
+      raise TypeError('value must be str or ExpressionNode', type(value))
+    name = self._prepare_name(name)
+    self.workspace.context[name] = value
+
+  def items(self):
+    namespace = creator.utils.create_var(self.unit.identifier, '')
+    for key, value in self.workspace.context.macros.items():
+      if key.startswith(namespace):
+        yield (key, value)
+
+  def update(self, mapping):
+    for key, value in list(mapping.items()):
+      self[key] = value
+
+  def has_macro(self, name):
+    if self.workspace.context.has_macro(self._prepare_name(name)):
+      return True
+    return self.workspace.context.has_macro(name)
 
   def get_macro(self, name, default=NotImplemented):
-    macro = super().get_macro(name, None)
-    if macro is None:
-      macro = self.unit.workspace.context.get_macro(name, None)
-    if macro is not None:
-      return macro
-    elif default is not NotImplemented:
-      return default
-    else:
-      raise KeyError(name)
+    try:
+      return self.workspace.context.get_macro(self._prepare_name(name))
+    except KeyError:
+      try:
+        return self.workspace.context.get_macro(name)
+      except KeyError:
+        pass
+    raise KeyError(name)
 
-  def get_namespace(self, name):
-    if name in self.unit.aliases:
-      identifier = self.unit.aliases[name]
-    else:
-      identifier = name
-    units = self.unit.workspace.units
-    if identifier in units:
-      return units[identifier].context
-    return super().get_namespace(name)
+  def get_namespace(self):
+    return self.unit.identifier
