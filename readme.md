@@ -13,7 +13,8 @@ Check out the [Wiki][] for more information!
 
 ### Known Unit Scripts
 
-- [c4dunit](https://github.com/NiklasRosenstein/c4dunit)
+- [c4dunit](https://github.com/NiklasRosenstein/c4dunit) - Build
+  Cinema 4D plugins on Windows and Mac OS
 
 [ninja]: https://github.com/martine/ninja
 [nr.strex]: https://github.com/NiklasRosenstein/nr.strex
