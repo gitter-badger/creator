@@ -20,6 +20,10 @@ parser.add_argument(
   'to all unit scripts. If no value is specified, it will be set to '
   'an empty string.', default=[], action='append')
 parser.add_argument(
+  '-M', '--macro', help='The same as -D, --define but evaluates like '
+  'a macro. Remember that backslashes must be escaped, etc.', default=[],
+  action='append')
+parser.add_argument(
   '-P', '--unitpath', help='Add an additional path to search for unit '
   'scripts to the workspace.', default=[], action='append')
 parser.add_argument(
@@ -58,11 +62,20 @@ def main(argv=None):
   args = parser.parse_args(argv)
   workspace = creator.unit.Workspace()
   workspace.path.extend(args.unitpath)
+
+  # Evaluate the Defines and Macros passed via the command line.
   for define in args.define:
     key, _, value = define.partition('=')
     if key:
+      workspace.context[key] = creator.macro.TextNode(value)
+  for macro in args.macro:
+    key, _, value = macro.partition('=')
+    if key:
       workspace.context[key] = value
 
+  # If not Unit Identifier was specified on the command-line,
+  # look at the current directory and use the only .crunit that
+  # is in there.
   if not args.identifier:
     files = glob.glob('*.crunit')
     if not files:
@@ -71,6 +84,7 @@ def main(argv=None):
       parser.error('multiple *.crunit files in the current directory')
     args.identifier = creator.utils.set_suffix(os.path.basename(files[0]), '')
 
+  # Load the unit script.
   unit = workspace.load_unit(args.identifier)
 
   # Set up all unit targets.
