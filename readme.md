@@ -5,6 +5,14 @@
 [ninja][] build files based on *Creator Unit Scripts*. The project is
 licensed under the MIT license. Check out the [Wiki][] for more information!
 
+__Features__
+
+- Unit Scripts are easy to write and pure Python code
+- Modular dependency management
+- Built-in set of Unit Scripts for platform independent building
+- Easily change build settings from the command-line or Unit Scripts
+- native support for the [ninja][] build system
+
 __Quick Reference__
 
 - [Unit Script Functions](https://github.com/NiklasRosenstein/creator/wiki/Units#unit-script-built-ins)
