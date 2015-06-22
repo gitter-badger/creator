@@ -7,7 +7,7 @@ import setuptools
 long_description = ''
 setuptools.setup(
   name='creator',
-  version='0.0.1',
+  version='0.0.1-dev',
   description='software build automation tool',
   long_description=long_description,
   author='Niklas Rosenstein',
