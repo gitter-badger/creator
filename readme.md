@@ -5,6 +5,11 @@
 [ninja][] build files. The project is licensed under the MIT license.
 Check out the [Wiki][] for more information!
 
+__Quick Reference__
+
+- [Unit Script Functions](https://github.com/NiklasRosenstein/creator/wiki/Units#unit-script-built-ins)
+- [Macro Functions](https://github.com/NiklasRosenstein/creator/wiki/Macros#functions)
+
 ### Requirements
 
 - Python 3
