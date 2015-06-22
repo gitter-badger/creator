@@ -204,18 +204,21 @@ class ShellTarget(Target):
         ``$@`` are available to the macros specified to this parameter.
     """
 
-    input_files = self.unit.eval(inputs, stack_depth=1)
-    output_files = self.unit.eval(outputs, stack_depth=1)
-    eval_commands = []
+    input_files = creator.utils.split(self.unit.eval(inputs, stack_depth=1))
+    input_files = [os.path.normpath(f) for f in input_files]
+    output_files = creator.utils.split(self.unit.eval(outputs, stack_depth=1))
+    output_files = [os.path.normpath(f) for f in output_files]
+
     supp_context = creator.macro.MutableContext()
-    supp_context['<'] = creator.macro.TextNode(input_files)
-    supp_context['@'] = creator.macro.TextNode(output_files)
+    supp_context['<'] = creator.macro.TextNode(creator.utils.join(input_files))
+    supp_context['@'] = creator.macro.TextNode(creator.utils.join(output_files))
+    eval_commands = []
     for command in commands:
       command = self.unit.eval(command, supp_context, stack_depth=1)
       eval_commands.append(command)
     self.data.append({
-      'inputs': creator.utils.split(input_files),
-      'outputs': creator.utils.split(output_files),
+      'inputs': input_files,
+      'outputs': output_files,
       'commands': eval_commands
     })
 
