@@ -20,14 +20,18 @@
 
 C['name'] = 'Windows_NT'
 
-C['binsuffix'] = 'exe'
-C['bin'] = '$(suffix $0,$binsuffix)'
+C['binp'] = ''
+C['bins'] = 'exe'
+C['bin'] = '$(prefix $(suffix $0,$bins),$binp)'
 
-C['objsuffix'] = 'obj'
-C['obj'] = '$(suffix $0,$objsuffix)'
+C['objp'] = ''
+C['objs'] = 'obj'
+C['obj'] = '$(prefix $(suffix $0,$objs),$objp)'
 
-C['libsuffix'] = 'exe'
-C['lib'] = '$(suffix $0,$libsuffix)'
+C['libp'] = ''
+C['libs'] = 'lib'
+C['lib'] = '$(prefix $(suffix $0,$libs),$libp)'
 
-C['dllsuffix'] = 'dll'
-C['dll'] = '$(suffix $0,$dllsuffix)'
+C['dllp'] = ''
+C['dlls'] = 'dll'
+C['dll'] = '$(prefix $(suffix $0,$dlls),$dllp)'

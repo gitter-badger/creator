@@ -20,16 +20,18 @@
 
 C['name'] = 'Linux'
 
-C['binsuffix'] = ''
-C['bin'] = '$(suffix $0,$binsuffix)'
+C['binp'] = ''
+C['bins'] = ''
+C['bin'] = '$(prefix $(suffix $0,$bins),$binp)'
 
-C['objsuffix'] = 'o'
-C['obj'] = '$(suffix $0,$objsuffix)'
+C['objp'] = ''
+C['objs'] = 'o'
+C['obj'] = '$(prefix $(suffix $0,$objs),$objp)'
 
-C['libsuffix'] = 'a'
-C['libprefix'] = 'lib'
-C['lib'] = '$(addprefix $libprefix,$(suffix $0,$libsuffix))'
+C['libp'] = 'lib'
+C['libs'] = 'a'
+C['lib'] = '$(prefix $(suffix $0,$libs),$libp)'
 
-C['dllsuffix'] = 'so'
-C['dllprefix'] = 'lib'
-C['dll'] = '$(addprefix $dllprefix,$(suffix $0,$dllsuffix))'
+C['dllp'] = 'lib'
+C['dlls'] = 'so'
+C['dll'] = '$(prefix $(suffix $0,$dlls),$dllp)'

@@ -18,10 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-linux = load('platform.linux')
-unit.context.macros.update(linux.context.macros)
+# Load the definitions of the linux platform unit.
+unit.context.update(load('platform.linux').context)
 
 C['name'] = 'Darwin'
 
-del C['dllprefix']
-C['dll'] = 'dylib'
+C['dllp'] = ''
+C['dlls'] = 'dylib'
