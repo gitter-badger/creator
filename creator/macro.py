@@ -547,8 +547,8 @@ class Globals:
     if len(args) != 2:
       message = 'addsuffix requires 2 arguments, got {0}'.format(len(args))
       raise TypeError(message)
-    suffix = args[1].eval(context, [])
-    items = creator.utils.split(args[0].eval(context, []))
+    suffix = args[0].eval(context, [])
+    items = creator.utils.split(args[1].eval(context, []))
     items = [x + suffix for x in items]
     return creator.utils.join(items)
 
