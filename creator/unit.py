@@ -338,7 +338,7 @@ class UnitContext(creator.macro.MutableContext):
   def __init__(self, unit):
     super().__init__()
     self._unit = weakref.ref(unit)
-    self['ProjectPath'] = unit.project_path
+    self['ProjectPath'] = creator.macro.TextNode(unit.project_path)
 
   @property
   def unit(self):
