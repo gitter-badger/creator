@@ -25,6 +25,10 @@ import shlex
 import subprocess
 
 
+def normpath(x):
+  return os.path.normpath(os.path.abspath(os.path.expanduser(x)))
+
+
 def quote(s):
   """
   Better implementation of :func:`shlex.quote` which uses single-quotes
@@ -137,7 +141,6 @@ def join(items):
   """
 
   return ';'.join(item.replace(';', '\\;') for item in items)
-
 
 
 class Shell(object):

@@ -85,8 +85,11 @@ class Target(object, metaclass=abc.ABCMeta):
     """
 
     with self.condition:
-      if self.status != 'pending':
+      if self.status == 'setup':
+        return True
+      elif self.status != 'pending':
         raise RuntimeError('{0} target can not be setup'.format(self.status))
+
 
     message = None
     success = False
@@ -142,6 +145,33 @@ class Target(object, metaclass=abc.ABCMeta):
         self.status = 'finished' if success else 'failed'
 
     return success
+
+  def requires(self, target):
+    """
+    Add a :class:`Target` as a requirement to this target. If the
+    target is still *pending*, it will be set up.
+
+    Args:
+      target (str or Target): The target to build before the other.
+        If a string is passed, the target name is resolved in the
+        workspace.
+    """
+
+    if isinstance(target, str):
+      namespace, target = creator.utils.parse_var(target)
+      if not namespace:
+        namespace = self.unit.identifier
+      identifier = creator.utils.create_var(namespace, target)
+      target = self.unit.workspace.find_target(identifier)
+    elif not isinstance(target, Target):
+      raise TypeError('target must be Target object', type(target))
+    with target.condition:
+      if target.status == 'pending':
+        target.setup_target()
+      if target.status != 'setup':
+        message = 'target "{0}" is not set up but "{1}"'
+        raise RuntimeError(message.format(target.identifier, target.status))
+    self.dependencies.append(target)
 
   @abc.abstractmethod
   def _setup_target(self):
@@ -222,9 +252,9 @@ class ShellTarget(Target):
     """
 
     input_files = creator.utils.split(self.unit.eval(inputs, stack_depth=1))
-    input_files = [os.path.normpath(f) for f in input_files]
+    input_files = [creator.utils.normpath(f) for f in input_files]
     output_files = creator.utils.split(self.unit.eval(outputs, stack_depth=1))
-    output_files = [os.path.normpath(f) for f in output_files]
+    output_files = [creator.utils.normpath(f) for f in output_files]
 
     supp_context = creator.macro.MutableContext()
     supp_context['<'] = creator.macro.TextNode(creator.utils.join(input_files))

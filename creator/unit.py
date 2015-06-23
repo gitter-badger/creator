@@ -106,6 +106,19 @@ class Workspace(object):
       raise
     return unit
 
+  def find_target(self, target):
+    """
+    Returns the name of a target based on a target identifier.
+    """
+
+    namespace, target = creator.utils.parse_var(target)
+    if namespace not in self.units:
+      raise ValueError('no unit "{0}" loaded'.format(namespace))
+    unit = self.units[namespace]
+    if target not in unit.targets:
+      raise ValueError('no target "{0}" in unit "{1}"'.format(namespace, target))
+    return unit.targets[target]
+
 
 class Unit(object):
   """
