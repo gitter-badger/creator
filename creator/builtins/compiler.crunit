@@ -20,7 +20,9 @@
 
 platform = eval('$Platform')
 standard = eval('$PlatformStandard')
-if platform == 'Windows':
+if defined('creator.compiler'):
+  load_name = eval('compiler.$creator.compiler')
+elif platform == 'Windows':
   load_name = 'compiler.msvc'
 elif platform == 'Cygwin':
   load_name = 'compiler.gcc'
