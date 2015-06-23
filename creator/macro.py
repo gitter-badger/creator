@@ -281,6 +281,21 @@ class ExpressionNode(object, metaclass=abc.ABCMeta):
 
     return self
 
+  @abc.abstractmethod
+  def copy(self, new_context):
+    """
+    Create a copy of the node and return it. If *new_context* is not
+    None, its a *ContextProvider* that should be used inside the *VarNode*s
+    instead of their previous.
+
+    Args:
+      new_context (ContextProvider or None): The new context.
+    Returns:
+      ExpressionNode: The copy of the node.
+    """
+
+    raise NotImplementedError
+
 
 class TextNode(ExpressionNode):
   """
@@ -303,6 +318,9 @@ class TextNode(ExpressionNode):
   def substitute(self, ref_name, node):
     return self
 
+  def copy(self, new_context):
+    return TextNode(self.text)
+
 
 class ConcatNode(ExpressionNode):
   """
@@ -316,9 +334,9 @@ class ConcatNode(ExpressionNode):
     nodes (list of ExpressionNode): The list of nodes.
   """
 
-  def __init__(self):
+  def __init__(self, nodes=None):
     super().__init__()
-    self.nodes = []
+    self.nodes = [] if nodes is None else nodes
 
   def append(self, node):
     """
@@ -353,6 +371,10 @@ class ConcatNode(ExpressionNode):
       self.nodes[i] = self.nodes[i].substitute(ref_name, node)
     return self
 
+  def copy(self, new_context):
+    nodes = [n.copy(new_context) for n in self.nodes]
+    return ConcatNode(nodes)
+
 
 class VarNode(ExpressionNode):
   """
@@ -362,8 +384,8 @@ class VarNode(ExpressionNode):
   def __init__(self, varname, args, context):
     super().__init__()
     self.varname = varname
-    self.context = weakref.ref(context)
     self.args = args
+    self.context = weakref.ref(context)
 
   def eval(self, context, args):
     if self.context:
@@ -399,6 +421,10 @@ class VarNode(ExpressionNode):
       self.args[i] = self.args[i].substitute(ref_name, node)
     return self
 
+  def copy(self, new_context):
+    args = [n.copy(new_context) for n in self.args]
+    return VarNode(self.varname, args, new_context)
+
 
 class Function(ExpressionNode):
   """
@@ -419,6 +445,9 @@ class Function(ExpressionNode):
     return self.func(context, args)
 
   def substitute(self, ref_name, node):
+    return self
+
+  def copy(self, new_context):
     return self
 
 

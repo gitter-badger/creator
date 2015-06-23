@@ -156,6 +156,7 @@ class Unit(object):
       'defined': self.defined,
       'eval': self.eval,
       'exit': sys.exit,
+      'extends': self.extends,
       'confirm': self.confirm,
       'foreach_split': self.foreach_split,
       'info': self.info,
@@ -263,6 +264,22 @@ class Unit(object):
       if not isinstance(alias, str):
         raise TypeError('alias must be str', type(alias))
       self.aliases[alias] = identifier
+    return unit
+
+  def extends(self, identifier):
+    """
+    Loads all the contents of the Unit with the specified *identifier*
+    into the scope of this Unit and substitutes the context references
+    in the original macros with the context of this unit.
+
+    Args:
+      identifier (str): The name of the unit to inherit from.
+    Returns:
+      Unit: The Unit matching the *identifier*.
+    """
+
+    unit = self.load(identifier)
+    self.context.update(unit.context, context_switch=True)
     return unit
 
   def info(self, *args, **kwargs):
@@ -413,8 +430,10 @@ class UnitContext(creator.macro.ContextProvider):
       if key.startswith(namespace):
         yield (key, value)
 
-  def update(self, mapping):
+  def update(self, mapping, context_switch=False):
     for key, value in list(mapping.items()):
+      if context_switch and isinstance(value, creator.macro.ExpressionNode):
+        value = value.copy(self)
       self[key] = value
 
   def has_macro(self, name):
