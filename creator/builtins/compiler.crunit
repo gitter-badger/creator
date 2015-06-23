@@ -21,12 +21,9 @@
 platform = eval('$Platform')
 standard = eval('$PlatformStandard')
 if platform == 'Windows':
-  if standard == 'Posix':
-    load_name = 'compiler.gcc'
-  elif standard == 'NT':
-    load_name = 'compiler.msvc'
-  else:
-    raise EnvironmentError('unexpected Windows standard "{0}"'.format(standard))
+  load_name = 'compiler.msvc'
+elif platform == 'Cygwin':
+  load_name = 'compiler.gcc'
 elif platform == 'Linux':
   load_name = 'compiler.gcc'
 elif platform == 'Darwin':
@@ -34,5 +31,4 @@ elif platform == 'Darwin':
 else:
   raise EnvironmentError('unsupported platform "{0}"'.format(platform))
 
-ref = load(load_name)
-unit.context.update(ref.context)
+extends(load_name)
