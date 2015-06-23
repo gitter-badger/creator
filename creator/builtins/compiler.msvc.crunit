@@ -20,12 +20,15 @@
 
 C['cc'] = 'cl /nologo'
 C['cpp'] = 'cl /nologo'
+C['ar'] = 'lib /nologo /OUT:$(quote $0)'
 C['compileonly'] = '/c'
 C['wall'] = '/Wall'
 C['g'] = '/Zi /g'
 
-C['include'] = '$(addprefix /I,$(quote $0))'
-C['define'] = '$(addprefix /D,$(quote $0))'
+C['include'] = '$(quotesplit $(addprefix /I,$0))'
+C['define'] = '$(quotesplit $(addprefix /D,$0))'
+C['libpath'] = '$(quotesplit $(addprefix /LIBPATH:,$0))'
+C['lib'] = '$(quotesplit $0)'
 
 C['objout'] = '/Fo$(quote $0)'
 C['binout'] = '/Fe$(quote $0)'

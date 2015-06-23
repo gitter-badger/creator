@@ -20,13 +20,16 @@
 
 C['cc'] = 'gcc'
 C['cpp'] = 'g++'
+C['ar'] = 'ar rcs $(quote $0)'
 C['compileonly'] = '-c'
 C['wall'] = '-Wall'
 C['cpp11'] = '-std=c++11'
 C['g'] = '-g'
 
-C['include'] = '$(quotelist $(addprefix -I,$0))'
-C['define'] = '$(quotelist $(addprefix -D,$0))'
+C['include'] = '$(quotesplit $(addprefix -I,$0))'
+C['define'] = '$(quotesplit $(addprefix -D,$0))'
+C['lib'] = '$(quotesplit $(addprefix -l,$0))'
+C['libpath'] = '$(quotesplit $(addprefix -L,$0))'
 
 C['objout'] = '-o $(quote $0)'
 C['binout'] = '-o $(quote $0)'

@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-C['name'] = 'Linux'
-
 C['binp'] = ''
 C['bins'] = ''
 C['bin'] = '$(prefix $(suffix $0,$bins),$binp)'

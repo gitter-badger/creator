@@ -21,7 +21,5 @@
 # Load the definitions of the linux platform unit.
 unit.context.update(load('platform.linux').context)
 
-C['name'] = 'Darwin'
-
 C['dllp'] = ''
 C['dlls'] = 'dylib'
