@@ -166,6 +166,7 @@ class Unit(object):
       'workspace': self.workspace,
       'C': self.context,
       'G': self.workspace.context,
+      'define': self.define,
       'defined': self.defined,
       'eval': self.eval,
       'exit': sys.exit,
@@ -202,6 +203,9 @@ class Unit(object):
 
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
+
+  def define(self, name, value):
+    self.context[name] = value
 
   def defined(self, name):
     """
@@ -421,7 +425,7 @@ class UnitContext(creator.macro.ContextProvider):
     namespace, varname = creator.utils.parse_var(name)
     if namespace in self.unit.aliases:
       namespace = self.unit.aliases[namespace]
-    else:
+    elif not namespace:
       namespace = self.unit.identifier
     return creator.utils.create_var(namespace, varname)
 

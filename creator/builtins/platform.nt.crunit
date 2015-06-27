@@ -18,18 +18,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-C['binp'] = ''
-C['bins'] = 'exe'
-C['bin'] = '$(prefix $(suffix $0,$bins),$binp)'
+define('binp', '')
+define('bins', 'exe')
+define('bin', '$(prefix $(suffix $0,$bins),$binp)')
 
-C['objp'] = ''
-C['objs'] = 'obj'
-C['obj'] = '$(prefix $(suffix $0,$objs),$objp)'
+define('objp', '')
+define('objs', 'obj')
+define('obj', '$(prefix $(suffix $0,$objs),$objp)')
 
-C['libp'] = ''
-C['libs'] = 'lib'
-C['lib'] = '$(prefix $(suffix $0,$libs),$libp)'
+define('libp', '')
+define('libs', 'lib')
+define('lib', '$(prefix $(suffix $0,$libs),$libp)')
 
-C['dllp'] = ''
-C['dlls'] = 'dll'
-C['dll'] = '$(prefix $(suffix $0,$dlls),$dllp)'
+define('dllp', '')
+define('dlls', 'dll')
+define('dll', '$(prefix $(suffix $0,$dlls),$dllp)')

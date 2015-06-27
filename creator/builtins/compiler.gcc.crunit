@@ -18,26 +18,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-C['cc'] = 'gcc'
-C['cpp'] = 'g++'
-C['ar'] = 'ar rcs $(quote $0)'
-C['compileonly'] = '-c'
-C['wall'] = '-Wall'
-C['cpp11'] = '-std=c++11'
-C['g'] = '-g'
+define('cc', 'gcc')
+define('cpp', 'g++')
+define('ar', 'ar rcs $(quote $0)')
+define('compileonly', '-c')
+define('wall', '-Wall')
+define('cpp11', '-std=c++11')
+define('g', '-g')
 
-C['include'] = '$(quotesplit $(addprefix -I,$0))'
-C['define'] = '$(quotesplit $(addprefix -D,$0))'
-C['lib'] = '$(quotesplit $(addprefix -l,$0))'
-C['libpath'] = '$(quotesplit $(addprefix -L,$0))'
+define('include', '$(quotesplit $(addprefix -I,$0))')
+define('define', '$(quotesplit $(addprefix -D,$0))')
+define('lib', '$(quotesplit $(addprefix -l,$0))')
+define('libpath', '$(quotesplit $(addprefix -L,$0))')
 
-C['objout'] = '-o $(quote $0)'
-C['binout'] = '-o $(quote $0)'
+define('objout', '-o $(quote $0)')
+define('binout', '-o $(quote $0)')
 
-C['O0'] = '-O0'
-C['O1'] = '-O1'
-C['O2'] = '-O2'
-C['O3'] = '-O3'
-C['Os'] = '-Os'
-C['Ofast'] = '-Ofast'
-C['Og'] = '-Og'
+define('O0', '-O0')
+define('O1', '-O1')
+define('O2', '-O2')
+define('O3', '-O3')
+define('Os', '-Os')
+define('Ofast', '-Ofast')
+define('Og', '-Og')

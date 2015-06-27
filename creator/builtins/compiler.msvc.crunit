@@ -18,25 +18,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-C['cc'] = 'cl /nologo'
-C['cpp'] = 'cl /nologo'
-C['ar'] = 'lib /nologo /OUT:$(quote $0)'
-C['compileonly'] = '/c'
-C['wall'] = '/Wall'
-C['g'] = '/Zi /g'
+define('cc', 'cl /nologo')
+define('cpp', 'cl /nologo')
+define('ar', 'lib /nologo /OUT:$(quote $0)')
+define('compileonly', '/c')
+define('wall', '/Wall')
+define('g', '/Zi /g')
 
-C['include'] = '$(quotesplit $(addprefix /I,$0))'
-C['define'] = '$(quotesplit $(addprefix /D,$0))'
-C['libpath'] = '$(quotesplit $(addprefix /LIBPATH:,$0))'
-C['lib'] = '$(quotesplit $0)'
+define('include', '$(quotesplit $(addprefix /I,$0))')
+define('define', '$(quotesplit $(addprefix /D,$0))')
+define('libpath', '$(quotesplit $(addprefix /LIBPATH:,$0))')
+define('lib', '$(quotesplit $0)')
 
-C['objout'] = '/Fo$(quote $0)'
-C['binout'] = '/Fe$(quote $0)'
+define('objout', '/Fo$(quote $0)')
+define('binout', '/Fe$(quote $0)')
 
-C['O0'] = ''
-C['O1'] = '/O1'
-C['O2'] = '/O2'
-C['O3'] = '/O2'  # O3 not supported
-C['Os'] = '/Os'
-C['Ofast'] = '/Ot'
-C['Og'] = '/Od'
+define('O0', '')
+define('O1', '/O1')
+define('O2', '/O2')
+define('O3', '/O2')  # O3 not supported
+define('Os', '/Os')
+define('Ofast', '/Ot')
+define('Og', '/Od')

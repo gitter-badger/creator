@@ -20,5 +20,5 @@
 
 extends('platform.linux')
 
-C['dllp'] = ''
-C['dlls'] = 'dylib'
+define('dllp', '')
+define('dlls', 'dylib')

@@ -20,8 +20,7 @@
 
 extends('platform.nt')
 
-C['objp'] = ''
-C['objs'] = 'o'
-
-C['libp'] = 'lib'
-C['libs'] = 'a'
+define('objp', '')
+define('objs', 'o')
+define('libp', 'lib')
+define('libs', 'a')
