@@ -43,11 +43,6 @@ __Requirements__
 - [nr.strex][]
 - [ninja][]
 
-__List of Unit Scrips__
-
-- [c4dunit](https://github.com/NiklasRosenstein/c4dunit) - Build
-  Cinema 4D plugins on Windows and Mac OS
-
 [ninja]: https://github.com/martine/ninja
 [nr.strex]: https://github.com/NiklasRosenstein/nr.strex
 [Wiki]: https://github.com/NiklasRosenstein/py-creator/wiki
