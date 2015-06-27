@@ -25,7 +25,7 @@ Visit https://github.com/NiklasRosenstein/py-creator/wiki.
 """
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas(at)gmail.com>'
-__version__ = '0.0.1-dev'
+__version__ = '0.0.1'
 __url__ = 'https://github.com/NiklasRosenstein/py-creator/wiki'
 
 import sys
