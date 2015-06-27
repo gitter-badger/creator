@@ -10,7 +10,7 @@ bug reports are absolutely welcome!
 
 __Features__
 
-- Unit Scripts are easy to write and pure Python code
+- Creator is simple (and pure Python)
 - Modular dependency management
 - Built-in set of Unit Scripts for platform independent building
 - Easily change build settings from the command-line or Unit Scripts
@@ -20,6 +20,22 @@ __Quick Reference__
 
 - [Unit Script Functions](https://github.com/NiklasRosenstein/creator/wiki/Units#unit-script-built-ins)
 - [Macro Functions](https://github.com/NiklasRosenstein/creator/wiki/Macros#functions)
+
+__Example__
+
+```python
+load('platform', 'p')
+load('compiler', 'c')
+
+if not defined('BuildDir'):
+  define('BuildDir', '$ProjectPath/build')
+define('Sources', '$(wildcard $ProjectPath/*.cpp)')
+define('Program', '$(p:bin $BuildDir/main)')
+
+@target
+def program():
+  program.add('$Sources', '$Program', '$c:cpp $c:wall $(c:binout $@) $(quotesplit $<)')
+```
 
 __Requirements__
 
