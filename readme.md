@@ -5,6 +5,9 @@
 [ninja][] build files based on *Creator Unit Scripts*. The project is
 licensed under the MIT license. Check out the [Wiki][] for more information!
 
+Note that Creator is in a very early stage. Contributions, questions and
+bug reports are absolutely welcome!
+
 __Features__
 
 - Unit Scripts are easy to write and pure Python code
