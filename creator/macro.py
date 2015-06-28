@@ -663,3 +663,9 @@ class Globals:
     items = ';'.join(n.eval(context, []) for n in args)
     items = creator.utils.split(items)
     return creator.utils.join(os.path.dirname(x) for x in items)
+
+  @Function
+  def normpath(context, args):
+    items = ';'.join(n.eval(context, []).strip() for n in args)
+    items = creator.utils.split(items)
+    return creator.utils.join(creator.utils.normpath(x) for x in items)
