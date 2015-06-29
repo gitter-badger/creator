@@ -150,7 +150,7 @@ class Unit(object):
     self.project_path = project_path
     self.identifier = identifier
     self.workspace = workspace
-    self.aliases = {}
+    self.aliases = {'self': self.identifier}
     self.targets = {}
     self.context = UnitContext(self)
     self.scope = self._create_scope()
