@@ -22,14 +22,14 @@ define('binp', '')
 define('bins', '')
 define('bin', '$(prefix $(suffix $0,$bins),$binp)')
 
-define('objp', ''
-define('objs', 'o'
+define('objp', '')
+define('objs', 'o')
 define('obj', '$(prefix $(suffix $0,$objs),$objp)')
 
-define('libp', 'lib'
-define('libs', 'a'
+define('libp', 'lib')
+define('libs', 'a')
 define('lib', '$(prefix $(suffix $0,$libs),$libp)')
 
-define('dllp', 'lib'
-define('dlls', 'so'
+define('dllp', 'lib')
+define('dlls', 'so')
 define('dll', '$(prefix $(suffix $0,$dlls),$dllp)')
