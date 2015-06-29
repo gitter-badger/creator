@@ -411,6 +411,7 @@ class UnitContext(creator.macro.ContextProvider):
   def __init__(self, unit):
     super().__init__()
     self._unit = weakref.ref(unit)
+    self['self'] = creator.macro.TextNode(self.unit.identifier)
     self['ProjectPath'] = creator.macro.TextNode(unit.project_path)
 
   @property
