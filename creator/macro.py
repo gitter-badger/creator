@@ -510,13 +510,18 @@ class Parser(object):
   def _parse_macro(self, scanner, context):
     cursor = scanner.state()
 
-    # This is a function call if we have an opening parentheses.
-    is_call = False
-    is_braced = False
     is_quoter = False
+    is_star = False
     if scanner.char == '"':
       is_quoter = True
       scanner.next()
+    elif scanner.char == '*':
+      is_star = True
+      scanner.next()
+
+    # This is a function call if we have an opening parentheses.
+    is_call = False
+    is_braced = False
     if scanner.char == self.CHAR_POPEN:
       is_call = True
       closing = self.CHAR_PCLOSE
@@ -533,6 +538,12 @@ class Parser(object):
       elif is_braced:
         is_call, is_braced = True, False
         varname = 'quotesplit'
+      else:
+        scanner.restore(cursor)
+        return None
+    elif is_star:
+      if is_call:
+        varname = 'wildcard'
       else:
         scanner.restore(cursor)
         return None
