@@ -445,6 +445,7 @@ class UnitContext(creator.macro.ContextProvider):
     namespace = creator.utils.create_var(self.unit.identifier, '')
     for key, value in self.workspace.context.macros.items():
       if key.startswith(namespace):
+        key = key[len(namespace):]
         yield (key, value)
 
   def update(self, mapping, context_switch=False):
