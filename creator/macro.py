@@ -513,33 +513,49 @@ class Parser(object):
     # This is a function call if we have an opening parentheses.
     is_call = False
     is_braced = False
+    is_quoter = False
+    if scanner.char == '"':
+      is_quoter = True
+      scanner.next()
     if scanner.char == self.CHAR_POPEN:
       is_call = True
+      closing = self.CHAR_PCLOSE
       scanner.next()
     elif scanner.char == self.CHAR_BOPEN:
       is_braced = True
+      closing = self.CHAR_BCLOSE
       scanner.next()
       scanner.consume_set(self.CHARS_WHITESPACE)
 
-    # Read the namespace or variable name identifier.
-    varname = scanner.consume_set(self.CHARS_IDENTIFIER)
-    if not varname:
-      return None
+    if is_quoter:
+      if is_call:
+        varname = 'quote'
+      elif is_braced:
+        is_call, is_braced = True, False
+        varname = 'quotesplit'
+      else:
+        scanner.restore(cursor)
+        return None
+    else:
+      # Read the namespace or variable name identifier.
+      varname = scanner.consume_set(self.CHARS_IDENTIFIER)
+      if not varname:
+        return None
 
     # If its a function call, consume beginning whitespace.
     args = []
     if is_call:
       scanner.consume_set(self.CHARS_WHITESPACE)
-      closing_at = self.CHAR_PCLOSE + self.CHAR_ARGSEP
-      while scanner.char and scanner.char != self.CHAR_PCLOSE:
+      closing_at = closing + self.CHAR_ARGSEP
+      while scanner.char and scanner.char != closing:
         node = self._parse_arg(scanner, context, closing_at)
         args.append(node)
         if scanner.char == self.CHAR_ARGSEP:
           scanner.next()
-        elif scanner.char == self.CHAR_PCLOSE:
+        elif scanner.char == closing:
           break
         scanner.consume_set(self.CHARS_WHITESPACE)
-      if scanner.char == self.CHAR_PCLOSE:
+      if scanner.char == closing:
         scanner.next()
       else:
         # No closing parenthesis? Bad call.
@@ -547,7 +563,7 @@ class Parser(object):
         return None
     elif is_braced:
       scanner.consume_set(self.CHARS_WHITESPACE)
-      if scanner.char != self.CHAR_BCLOSE:
+      if scanner.char != closing:
         scanner.restore(cursor)
         return None
       scanner.next()
