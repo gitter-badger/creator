@@ -50,19 +50,6 @@ parser.add_argument(
 subparser = parser.add_subparsers(dest='command')
 
 
-build_parser = subparser.add_parser('build')
-build_parser.add_argument(
-  'targets', help='One or more names of targets that are to be '
-  'built by this invocation. If a name contains no namespace access '
-  'character `:` it will be assumed relative to the main unit.', nargs='*',
-  default=[])
-build_parser.add_argument(
-  '-S', '--no-summary', help='Do not display a summary after the build '
-  'process is complete or failed.', action='store_true')
-ninja_parser.add_argument('-D', '--define', action='append')
-ninja_parser.add_argument('-M', '--macro', action='append')
-
-
 ninja_parser = subparser.add_parser('ninja')
 ninja_parser.add_argument('-N', '--no-build', action='store_true',
   help="Don't run ninja after exporting the `ninja.build` file.")
@@ -110,63 +97,10 @@ def main(argv=None):
 
   if args.command is None:
     return 0
-  elif args.command == 'build':
-    return cmd_build(args, workspace, unit)
   elif args.command == 'ninja':
     return cmd_ninja(args, workspace, unit)
   else:
     raise RuntimeError('unexpected command', args.command)
-
-
-def cmd_build(args, workspace, unit):
-  # Collect a list of all targets, we need to check if any failed.
-  all_targets = []
-  for unit in workspace.units.values():
-    all_targets.extend(unit.targets.values())
-
-  # Collect the targets to be run and run them.
-  if not args.targets:
-    targets = all_targets
-  else:
-    targets = []
-    for name in args.targets:
-      curr_unit = unit
-      if ':' in name:
-        unit_name, name = creator.utils.parse_var(name)
-        if unit_name not in workspace.units:
-          parser.error('no unit called "{0}"'.format(unit_name))
-        curr_unit = workspace.units[unit_name]
-
-      if name not in curr_unit.targets:
-        parser.error('no target called "{0}" in unit "{1}"'.format(
-          name, curr_unit.identifier))
-      targets.append(curr_unit.targets[name])
-
-  try:
-    for target in targets:
-      recursively_run_target(target)
-  except Exception as exc:
-    traceback.print_exc()
-
-  # Print a summary?
-  if not args.no_summary:
-    print()
-    print("Summary:")
-    print("==================================================================")
-    for target in sorted(all_targets, key=lambda x: x.identifier):
-      print("* {0:20s} : {1}".format(target.identifier, target.status), end='')
-      if target.message:
-        print(" ({0})".format(target.message))
-      else:
-        print()
-
-  # Check if a target failed.
-  for target in all_targets:
-    with target.condition:
-      if target.status == 'failed':
-        return 1
-
-  return 0
 
 
 def cmd_ninja(args, workspace, unit):
@@ -175,23 +109,6 @@ def cmd_ninja(args, workspace, unit):
   print("creator: exported to build.ninja")
   if not args.no_build:
     return subprocess.call(['ninja'] + args.args, shell=True)
-
-
-def recursively_run_target(target):
-  """
-  Recursively runs the dependencies of *target* and then the target itself.
-  """
-
-  for dep in target.dependencies:
-    with dep.condition:
-      if dep.status != 'setup':
-        continue
-    recursively_run_target(dep)
-
-  with target.condition:
-    if target.status != 'setup':
-      return
-  target.run_target()
 
 
 if __name__ == "__main__":
