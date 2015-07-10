@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import re
+
 define('cc', 'cl /nologo')
 define('cpp', 'cl /nologo')
 define('ar', 'lib /nologo /OUT:$(quote $0)')
@@ -40,3 +42,22 @@ define('O3', '/O2')  # O3 not supported
 define('Os', '/Os')
 define('Ofast', '/Ot')
 define('Og', '/Od')
+
+# Detect the Platform Toolset Version and Target Architecture.
+try:
+  line = shell('cl').readline().strip()
+except OSError:
+  # "cl" not found
+  pass
+except ExitCodeError:
+  # "cl" exited with non-zero exit code
+  info('# Warning: "cl" exited with non-zero exit code.')
+  pass
+else:
+  match = re.match('Microsoft.*Compiler\s+Version\s+([\d\.]+).*(x86|x64)', line, re.I)
+  if not match:
+    info('# Warning: "cl" returned unexpected output.')
+  else:
+    define('Detected', 'true')
+    define('Version', match.group(1))
+    define('Arch', match.group(2))

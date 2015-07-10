@@ -150,7 +150,7 @@ class Unit(object):
     self.project_path = project_path
     self.identifier = identifier
     self.workspace = workspace
-    self.aliases = {}
+    self.aliases = {'self': self.identifier}
     self.targets = {}
     self.context = UnitContext(self)
     self.scope = self._create_scope()
@@ -411,6 +411,7 @@ class UnitContext(creator.macro.ContextProvider):
   def __init__(self, unit):
     super().__init__()
     self._unit = weakref.ref(unit)
+    self['self'] = creator.macro.TextNode(self.unit.identifier)
     self['ProjectPath'] = creator.macro.TextNode(unit.project_path)
 
   @property
@@ -445,6 +446,7 @@ class UnitContext(creator.macro.ContextProvider):
     namespace = creator.utils.create_var(self.unit.identifier, '')
     for key, value in self.workspace.context.macros.items():
       if key.startswith(namespace):
+        key = key[len(namespace):]
         yield (key, value)
 
   def update(self, mapping, context_switch=False):
