@@ -29,12 +29,12 @@ load('compiler', 'c')
 
 if not defined('BuildDir'):
   define('BuildDir', '$ProjectPath/build')
-define('Sources', '$(wildcard $ProjectPath/*.cpp)')
+define('Sources', '$*($ProjectPath/*.cpp)')
 define('Program', '$(p:bin $BuildDir/main)')
 
 @target
 def program():
-  program.add('$Sources', '$Program', '$c:cpp $c:wall $(c:binout $@) $(quotesplit $<)')
+  program.add('$Sources', '$Program', '$c:cpp $c:wall $(c:binout $@) $"{$<}')
 ```
 
 __Requirements__
