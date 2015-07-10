@@ -25,7 +25,6 @@ import creator.ninja
 import argparse
 import os
 import glob
-import subprocess
 import sys
 import traceback
 
@@ -108,7 +107,8 @@ def cmd_ninja(args, workspace, unit):
     creator.ninja.export(workspace, fp)
   print("creator: exported to build.ninja")
   if not args.no_build:
-    return subprocess.call(['ninja'] + args.args, shell=True)
+    command = ' '.join(creator.utils.quote(x) for x in ['ninja'] + args.args)
+    return os.system(command)
 
 
 if __name__ == "__main__":
