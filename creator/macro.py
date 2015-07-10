@@ -487,7 +487,10 @@ class Parser(object):
         char = scanner.next()
         node = None
         if char != '$':
+          cursor = scanner.state()
           node = self._parse_macro(scanner, context)
+          if not node:
+            scanner.restore(cursor)
         if node:
           root.append(node)
           char = scanner.char
@@ -508,54 +511,46 @@ class Parser(object):
     return root
 
   def _parse_macro(self, scanner, context):
-    cursor = scanner.state()
-
-    is_quoter = False
-    is_star = False
-    if scanner.char == '"':
-      is_quoter = True
-      scanner.next()
-    elif scanner.char == '*':
-      is_star = True
+    # Check if a shortcut identifier was used.
+    shortcut = None
+    if scanner.char in Globals.shortcut_map:
+      shortcut = Globals.shortcut_map[scanner.char]
       scanner.next()
 
-    # This is a function call if we have an opening parentheses.
     is_call = False
     is_braced = False
+
+    # Check if we have an opening parenthesis (function call).
     if scanner.char == self.CHAR_POPEN:
       is_call = True
       closing = self.CHAR_PCLOSE
       scanner.next()
+
+    # Or if we got braces (enclosed variable expansion).
     elif scanner.char == self.CHAR_BOPEN:
       is_braced = True
       closing = self.CHAR_BCLOSE
       scanner.next()
       scanner.consume_set(self.CHARS_WHITESPACE)
 
-    if is_quoter:
-      if is_call:
-        varname = 'quote'
-      elif is_braced:
-        is_call, is_braced = True, False
-        varname = 'quotesplit'
-      else:
-        scanner.restore(cursor)
-        return None
-    elif is_star:
-      if is_call:
-        varname = 'wildcard'
-      else:
-        scanner.restore(cursor)
-        return None
+    # If a shortcut was used and this is a call, we already know
+    # the function that is used to call.
+    if shortcut and is_call:
+      varname = shortcut
+
+    # Read the variable or function name that is referenced
+    # in this expression.
     else:
-      # Read the namespace or variable name identifier.
       varname = scanner.consume_set(self.CHARS_IDENTIFIER)
       if not varname:
         return None
 
-    # If its a function call, consume beginning whitespace.
-    args = []
+    if 'ath' in varname:
+      pass
+
+    # If its a function call, we need to read in the arguments.
     if is_call:
+      args = []
       scanner.consume_set(self.CHARS_WHITESPACE)
       closing_at = closing + self.CHAR_ARGSEP
       while scanner.char and scanner.char != closing:
@@ -565,21 +560,26 @@ class Parser(object):
           scanner.next()
         elif scanner.char == closing:
           break
+        # Skip whitespace after the argument separator.
         scanner.consume_set(self.CHARS_WHITESPACE)
-      if scanner.char == closing:
-        scanner.next()
-      else:
-        # No closing parenthesis? Bad call.
-        scanner.restore(cursor)
+      if scanner.char != closing:
         return None
+      scanner.next()
+      return VarNode(varname, args, context)
+
+    # If its braced, we only need the name of the variable that
+    # is being referenced.
     elif is_braced:
       scanner.consume_set(self.CHARS_WHITESPACE)
       if scanner.char != closing:
-        scanner.restore(cursor)
         return None
       scanner.next()
 
-    return VarNode(varname, args, context)
+
+    node = VarNode(varname, [], context)
+    if shortcut:
+      node = VarNode(shortcut, [node], context)
+    return node
 
 
 parser = Parser()
@@ -587,6 +587,12 @@ parse = parser.parse
 
 
 class Globals:
+
+  shortcut_map = {
+    '"': 'quote',
+    '!': 'quotesplit',
+    '*': 'wildcard',
+  }
 
   @Function
   def addprefix(context, args):
