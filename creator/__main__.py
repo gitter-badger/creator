@@ -53,10 +53,10 @@ subparser = parser.add_subparsers(dest='command')
 ninja_parser = subparser.add_parser('ninja')
 ninja_parser.add_argument('-N', '--no-build', action='store_true',
   help="Don't run ninja after exporting the `ninja.build` file.")
-ninja_parser.add_argument('args', nargs='*', default=[],
-  help="Additional arguments for the ninja invocation.")
 ninja_parser.add_argument('-D', '--define', action='append')
 ninja_parser.add_argument('-M', '--macro', action='append')
+ninja_parser.add_argument('args', nargs='*', default=[],
+  help="Additional arguments for the ninja invocation.")
 
 
 def main(argv=None):
