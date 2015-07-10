@@ -20,12 +20,12 @@
 
 import creator.unit
 import creator.utils
-import creator.target
-import creator.vendor.ninja_syntax as ninja
+import creator.ninja
+
 import argparse
 import os
 import glob
-import re
+import subprocess
 import sys
 import traceback
 
@@ -62,15 +62,10 @@ build_parser.add_argument(
 
 
 ninja_parser = subparser.add_parser('ninja')
-ninja_parser.add_argument(
-  '--stdout', help='Outputs to stdout instead of to build.ninja',
-  action='store_true')
-ninja_parser.add_argument(
-  '-o', '--output', help='Target output file. Will be ignored if '
-  '--stdout is passed.', default='build.ninja')
-ninja_parser.add_argument(
-  '-f', '--force', help='Force overwrite the output file.',
-  action='store_true')
+ninja_parser.add_argument('-N', '--no-build', action='store_true',
+  help="Don't run ninja after exporting the `ninja.build` file.")
+ninja_parser.add_argument('args', nargs='*', default=[],
+  help="Additional arguments for the ninja invocation.")
 
 
 def main(argv=None):
@@ -171,68 +166,11 @@ def cmd_build(args, workspace, unit):
 
 
 def cmd_ninja(args, workspace, unit):
-  if args.stdout:
-    writer = ninja.Writer(sys.stdout)
-  elif os.path.isfile(args.output) and not args.force:
-    ninja_parser.error('file "{0}" already exists.'.format(args.output))
-  else:
-    writer = ninja.Writer(open(args.output, 'w'))
-
-  # Export the ShellTarget's in all units to the Ninja file.
-  for unit in sorted(workspace.units.values(), key=lambda x: x.identifier):
-    if not unit.targets:
-      continue
-    writer.comment('Unit: {0}'.format(unit.identifier))
-    writer.newline()
-    for target in sorted(unit.targets.values(), key=lambda x: x.name):
-      if target.status in ('pending', 'skipped'):
-        continue
-      elif target.status != 'setup':
-        print('# Error: Target "{0}" has status {1}'.format(
-          target.identifier, target.status))
-        return 1
-      if not isinstance(target, creator.target.ShellTarget):
-        print('# Warning: Target "{0}" not translate to ninja'.format(
-          target.identifier), file=sys.stderr)
-        continue
-      # The outputs of depending targets must be listed as input
-      # files on each command.
-      infiles = set()
-      for dep in target.dependencies:
-        if not isinstance(dep, creator.target.ShellTarget):
-          print('# Warning: Dependency "{0}" of target "{1}" can not '
-            'translate to ninja'.format(dep.identifier, target.identifier),
-            file=sys.stderr)
-          continue
-        for entry in dep.data:
-          for filename in entry['outputs']:
-            infiles.add(creator.utils.normpath(filename))
-      infiles = list(infiles)
-      writer.comment('Target: {0}'.format(target.identifier))
-      phonies = []
-      for index, entry in enumerate(target.data):
-        if len(entry['commands']) != 1:
-          print("# Warning: Target {0} lists multiple commands which is"
-            "not supported by ninja".format(target.identifier), file=sys.stderr)
-          continue
-        phonies.extend(entry['outputs'])
-        rule_name = ninja_ident(target.identifier + '_{0:04d}'.format(index))
-        writer.rule(rule_name, entry['commands'])
-        writer.build(entry['outputs'], rule_name, list(entry['inputs']) + infiles)
-        writer.newline()
-      writer.build(ninja_ident(target.identifier), 'phony', phonies)
-
-  if not args.stdout:
-    print("creator: Exported to", args.output)
-
-
-def ninja_ident(s):
-  """
-  Converts the string *s* into an identifier that is acceptible by
-  ninja by replacing all invalid characters with an underscore.
-  """
-
-  return re.sub('[^A-Za-z0-9_]+', '_', s)
+  with open('ninja.build', 'w') as fp:
+    creator.ninja.export(workspace, fp)
+  print("creator: exported to build.ninja")
+  if not args.no_build:
+    return subprocess.call(['ninja'] + args.args, shell=True)
 
 
 def recursively_run_target(target):
