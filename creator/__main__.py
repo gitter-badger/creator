@@ -108,7 +108,7 @@ def cmd_ninja(args, workspace, unit):
     creator.ninja.export(workspace, fp)
   print("creator: exported to build.ninja")
   if not args.no_build:
-    return subprocess.call(['ninja'] + args.args, shell=True)
+    return subprocess.call(['ninja'] + args.args)
 
 
 if __name__ == "__main__":
