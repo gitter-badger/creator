@@ -79,12 +79,17 @@ def validate_identifier(identifier):
 def parse_var(var):
   """
   Parses a variable name with an optional namespace access and
-  returns a tuple of ``(namespace, varname)``.
+  returns a tuple of ``(namespace, varname)``. If a namespace
+  separator is specified, the returned namespace will be an
+  empty string (as there should be a namespace but there were
+  no characters for it).
   """
 
-  namespace, _, varname = var.partition(':')
+  namespace, sep, varname = var.partition(':')
   if not varname:
     namespace, varname = varname, namespace
+  if not sep:
+    namespace = None
   return (namespace, varname)
 
 

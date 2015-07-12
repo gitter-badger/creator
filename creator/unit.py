@@ -426,7 +426,7 @@ class UnitContext(creator.macro.ContextProvider):
     namespace, varname = creator.utils.parse_var(name)
     if namespace in self.unit.aliases:
       namespace = self.unit.aliases[namespace]
-    elif not namespace:
+    elif namespace is None:
       namespace = self.unit.identifier
     return creator.utils.create_var(namespace, varname)
 
