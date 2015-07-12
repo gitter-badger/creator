@@ -47,7 +47,9 @@ class Workspace(object):
 
   def __init__(self):
     super(Workspace, self).__init__()
-    self.path = ['.', os.path.join(os.path.dirname(__file__), 'builtins')]
+    self.path = ['.']
+    self.path.append(os.path.join(os.path.dirname(__file__), 'builtins'))
+    self.path.append(os.path.join(sys.prefix, 'creator'))
     self.path.extend(os.getenv('CREATORPATH', '').split(os.pathsep))
     self.context = WorkspaceContext(self)
     self.units = {}

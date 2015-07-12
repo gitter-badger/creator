@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import glob
 import setuptools
 
 long_description = ''
@@ -34,6 +35,9 @@ setuptools.setup(
   py_modules=['creator'],
   packages=setuptools.find_packages('.'),
   package_dir={'': '.'},
+  data_files=[
+    ('creator', glob.glob('creator/builtins/*.crunit')),
+  ],
   scripts=['scripts/creator'],
   classifiers=[
     "Development Status :: 5 - Production/Stable",
