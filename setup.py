@@ -23,13 +23,13 @@ import setuptools
 
 long_description = ''
 setuptools.setup(
-  name='creator',
-  version='0.0.2-dev',
-  description='software build automation tool',
+  name='creator-build',
+  version='0.0.2',
+  description='Meta Build System for Ninja',
   long_description=long_description,
   author='Niklas Rosenstein',
   author_email='rosensteinniklas@gmail.com',
-  url='https://github.com/NiklasRosenstein/py-creator',
+  url='https://github.com/creator-build/creator',
   install_requires=['nr.strex>=1.3'],
   py_modules=['creator'],
   packages=setuptools.find_packages('.'),
@@ -43,5 +43,5 @@ setuptools.setup(
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-  license="none",
+  license="MIT",
 )
