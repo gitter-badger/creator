@@ -26,6 +26,7 @@ define('ar', 'lib /nologo /OUT:$(quote $0)')
 define('compileonly', '/c')
 define('wall', '/Wall')
 define('g', '/Zi /g')
+define('exceptions', '/EHsc')
 
 define('include', '$(quotesplit $(addprefix /I,$0))')
 define('define', '$(quotesplit $(addprefix /D,$0))')
