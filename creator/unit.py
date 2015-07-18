@@ -121,6 +121,16 @@ class Workspace(object):
       raise ValueError('no target "{0}" in unit "{1}"'.format(namespace, target))
     return unit.targets[target]
 
+  def setup_targets(self):
+    """
+    Sets up all targets in the workspace.
+    """
+
+    for unit in self.units.values():
+      for target in unit.targets.values():
+        if not target.is_setup:
+          target.do_setup()
+
 
 class Unit(object):
   """
@@ -142,10 +152,6 @@ class Unit(object):
     scope (dict): A dictionary that contains the scope in which the unit
       script is being executed.
   """
-
-  # You can change this on a unit instance to change the behaviour
-  # of the target() function which creates an instance of this class.
-  ShellTargetCls = creator.target.ShellTarget
 
   def __init__(self, project_path, identifier, workspace):
     super(Unit, self).__init__()
@@ -237,7 +243,7 @@ class Unit(object):
       raise TypeError('func must be callable', type(func))
     if func.__name__ in self.targets:
       raise ValueError('target "{0}" already exists'.format(func.__name__))
-    target = self.ShellTargetCls(self, func.__name__, func)
+    target = creator.target.Target(self, func.__name__, func, False)
     self.targets[func.__name__] = target
     return target
 

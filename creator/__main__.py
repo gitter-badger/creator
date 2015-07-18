@@ -91,9 +91,7 @@ def main(argv=None):
   unit = workspace.load_unit(args.identifier)
 
   # Set up all unit targets.
-  for a_unit in workspace.units.values():
-    for target in a_unit.targets.values():
-      target.setup_target()
+  workspace.setup_targets()
 
   if args.command is None:
     return 0

@@ -17,54 +17,75 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+"""
+This module provides the :class:`Target` class which contains all the
+information necessary to generate build commands and export them to a
+ninja build definitions file.
+"""
 
 import creator.macro
 import creator.unit
 import creator.utils
-import abc
-import os
-import threading
+import creator.ninja
 import weakref
 
 
-class Target(object, metaclass=abc.ABCMeta):
+class Target(object):
   """
-  Interface for target declarations. A target is basically just a process
-  that will be executed when its dependencies are met. Multiple targets can
-  be run from multiple threads as long as their member access is synchronized
-  with the :attr:`condition` variable.
+  This class represents one or multiple build targets under one common
+  identifier. It contains all the information necessary to generate the
+  required build commands.
+
+  A target has a set-up phase which is invoked after all units were
+  loaded and evaluated. After this phase is complete, the target should
+  be completely filled with all data.
+
+  Args:
+    unit (creator.unit.Unit): The unit this target belongs to.
+    name (str): The name of the target.
+    on_setup (callable): A Python function that is called on set-up.
+    pass_self (bool): True if the target should be passed as the first
+      argument to *on_setup*, False if not.
+    args (any): List of arguments passed to *on_setup*.
+    kwargs (any): List of keyword arguments passed to *on_setup*.
 
   Attributes:
-    unit (creator.unit.Unit): The unit that the target is owned by.
-    name (str): The name of the target in the scope of the unit.
-    dependencies (list of Target): A list of targets that are required
-      to be executed before this target.
-    status (str): The status of the target. One of the following values:
-      ``'pending', 'setup', 'running', 'finished', 'failed'``, ``'skipped'``.
-      A target will receive these statuses in the order read above where
-      it makes sense (from pending to setup to skipped or running then to
-      finished or failed).
-    message (str): A message that is usually only set when an error occured.
-      If an exception is raised during the execution of the target, it will
-      be set to the exception message.
-    condition (threading.Condition): A condition variable that should
-      be used in case some implementation wants to run targets in multiple
-      threads.
+    unit (creator.unit.Unit): The unit this target belongs to.
+    name (str): The name of the target.
+    identifier (str): The identifier of the target, which is the
+      units identifier and the targets name concatenated.
+    is_setup (bool): True if the target is set-up, False if not.
+    on_setup (callable)
+    pass_self (bool)
+    args (any)
+    kwargs (any)
+    listeners (list of callable): A list of functions listening to
+      certain events of the target. The functions are invoked with
+      the three arguments ``(target, event, data)``.
   """
 
-  def __init__(self, unit, name):
+  def __init__(
+      self, unit, name, on_setup=None, pass_self=True,
+      args=(), kwargs=None):
     if not isinstance(unit, creator.unit.Unit):
       raise TypeError('unit must be creator.unit.Unit', type(unit))
     if not isinstance(name, str):
       raise TypeError('name must be str', type(name))
     if not creator.utils.validate_identifier(name):
       raise ValueError('name is not a valid identifier', name)
+    if on_setup is not None and not callable(on_setup):
+      raise TypeError('on_setup must be None or callable')
     super().__init__()
     self._unit = weakref.ref(unit)
     self._name = name
+    self.is_setup = False
     self.dependencies = []
-    self.status = 'pending'
-    self.condition = threading.Condition()
+    self.on_setup = on_setup
+    self.pass_self = pass_self
+    self.args = args
+    self.kwargs = kwargs or {}
+    self.command_data = []
+    self.listeners = []
 
   @property
   def unit(self):
@@ -78,78 +99,35 @@ class Target(object, metaclass=abc.ABCMeta):
   def identifier(self):
     return self._unit().identifier + ':' + self._name
 
-  def setup_target(self):
+  def do_setup(self):
     """
-    All targets get the chance to do some setup work. This may finally
-    set up all the dependencies of the target or intialize internal data.
-    """
+    Set up the targets internal data or dependencies. Call the parent
+    method after successful exit to set :attr:`is_setup` to True. Raise
+    an exception if something fails.
 
-    with self.condition:
-      if self.status == 'setup':
-        return True
-      elif self.status != 'pending':
-        raise RuntimeError('{0} target can not be setup'.format(self.status))
-
-
-    message = None
-    success = False
-    try:
-      success = self._setup_target()
-    except Exception as exc:
-      message = str(exc)
-      raise
-    finally:
-      with self.condition:
-        self.message = message
-        self.status = 'setup' if success else 'failed'
-
-    return success
-
-  def run_target(self):
-    """
-    Does what the target needs to do and updates the target status.
-    This method will make sure that all dependencies of the target are
-    met, but will only result in an exception instead of running them
-    if they're not.
+    Raises:
+      RuntimeError: If the target is already set-up.
     """
 
-    with self.condition:
-      if self.status != 'setup':
-        message = '{0} target "{1}" can not be run'
-        raise RuntimeError(message.format(self.status, self.identifier))
+    if self.is_setup:
+      raise RuntimeError('target "{0}" is already set-up'.format(self.identifier))
 
-      # Make sure all dependencies are actually targets and have
-      # status "finished"
-      for dep in self.dependencies:
-        if not isinstance(dep, Target):
-          message = 'target "{0}" has an invalid type dependency {1!r}'
-          raise RuntimeError(message.format(self.identifier, dep))
-        with dep.condition:
-          if dep.status not in ('finished', 'skipped'):
-            message = 'target "{0}" dependency "{1}" has status "{2}"'
-            message = message.format(self.identifier, dep.name, dep.status)
-            raise RuntimeError(message)
+    for listener in self.listeners:
+      listener(self, 'do_setup', None)
 
-      self.status = 'running'
+    if self.on_setup is not None:
+      if self.pass_self:
+        self.on_setup(self, *self.args, **self.kwargs)
+      else:
+        self.on_setup(*self.args, **self.kwargs)
 
-    message = None
-    success = False
-    try:
-      success = self._run_target()
-    except Exception as exc:
-      message = str(exc)
-      raise
-    finally:
-      with self.condition:
-        self.message = message
-        self.status = 'finished' if success else 'failed'
-
-    return success
+    self.is_setup = True
+    return True
 
   def requires(self, target):
     """
-    Add a :class:`Target` as a requirement to this target. If the
-    target is still *pending*, it will be set up.
+    Adds *target* as a dependency for this target. If the *target* is
+    not already set-up, it will be by this function.
 
     Args:
       target (str or Target): The target to build before the other.
@@ -165,83 +143,22 @@ class Target(object, metaclass=abc.ABCMeta):
       target = self.unit.workspace.find_target(identifier)
     elif not isinstance(target, Target):
       raise TypeError('target must be Target object', type(target))
-    with target.condition:
-      if target.status == 'pending':
-        target.setup_target()
-      if target.status != 'setup':
-        message = 'target "{0}" is not set up but "{1}"'
-        raise RuntimeError(message.format(target.identifier, target.status))
+    if not target.is_setup:
+      target.do_setup()
     self.dependencies.append(target)
-
-  @abc.abstractmethod
-  def _setup_target(self):
-    """
-    Set up the targets internal data or dependencies.
-
-    Returns:
-      bool: True on success, False if an error occured.
-    """
-
-    return False
-
-  @abc.abstractmethod
-  def _run_target(self):
-    """
-    Do what the target needs to do. This function is called from the
-    :meth:`run_target` method which takes care of some status updates
-    before and after the target is running.
-
-    Returns:
-      bool: True on success, False if an error occured.
-    """
-
-    return False
-
-
-class FuncTarget(Target):
-  """
-  This :class:`Target` implementation wraps a Python function.
-  """
-
-  def __init__(self, func):
-    super().__init__()
-    self.func = func
-
-  def _run_target(self):
-    result = self.func()
-    if result is None:
-      result = True
-    return result
-
-
-class ShellTarget(Target):
-  """
-  This :class:`Target` implementation is supposed to be used for targets
-  in unit scripts. It associates each zero or more input and output files
-  with one or more commands that are supposed to be run in the systems
-  command shell.
-
-  The :meth:`add` function evaluates all arguments as macros. Just like
-  the :meth:`creator.unit.Unit.eval` function, it takes the scope of the
-  calling stack frame into account. Also, for the command macros, the
-  special variables ``$<`` and ``$@`` are available which are aliases
-  for the input and output file macros.
-
-  Args:
-    func (callable): The Python function that adds content to the target.
-    data (list): A list of the data that was added via :meth:`add`.
-  """
-
-  def __init__(self, unit, name, func):
-    super(ShellTarget, self).__init__(unit, name)
-    self.func = func
-    self.data = []
 
   def add(self, inputs, outputs, *commands):
     """
     Associated the *inputs* with the *outputs* being built by the
     specified *\*commands*. All parameters passed to this function must
-    be strings that are automatically evaluated.
+    be strings that are automatically and instantly evaluated as macros.
+
+    The data will be appended to :attr:`command_data` in the form of
+    a dictionary with the following keys:
+
+    - ``'inputs'``: A list of input files.
+    - ``'outputs'``: A list of output files.
+    - ``'commands'``: A list of the commands to produce the files.
 
     Args:
       inputs (str): A listing of the input files.
@@ -249,7 +166,16 @@ class ShellTarget(Target):
       *commands (tuple of str): One or more commands to build the
         outputs from the inputs The special variables ``$<`` and
         ``$@`` are available to the macros specified to this parameter.
+        **Note**: Currently, Creator only supports one command per target.
     """
+
+    if len(commands) != 1:
+      raise RuntimeError('Creator currently only supports one command per target.')
+
+    data = {'inputs': inputs, 'outputs': outputs, 'commands': commands}
+    for listener in self.listeners:
+      listener(self, 'add', data)
+    inputs, outputs, commands = data['inputs'], data['outputs'], data['commands']
 
     input_files = creator.utils.split(self.unit.eval(inputs, stack_depth=1))
     input_files = [creator.utils.normpath(f) for f in input_files]
@@ -263,29 +189,51 @@ class ShellTarget(Target):
     for command in commands:
       command = self.unit.eval(command, supp_context, stack_depth=1)
       eval_commands.append(command)
-    self.data.append({
+    self.command_data.append({
       'inputs': input_files,
       'outputs': output_files,
       'commands': eval_commands
     })
 
-  def _setup_target(self):
-    self.func()
-    return True
+  def export(self, writer):
+    """
+    Export the target to the ninja file using the *writer*. The target
+    and all its dependencies must be set-up.
 
-  def _run_target(self):
-    import subprocess, shlex
-    for entry in self.data:
-      # Make sure the directories of the output files exist.
-      for fn in entry['outputs']:
-        dirname = os.path.dirname(fn)
-        if not os.path.exists(dirname):
-          os.makedirs(dirname)
-      for command in entry['commands']:
-        print('$', command)
-        command_args = shlex.split(command)
-        code = subprocess.call(command_args)
-        if code != 0:
-          message = '"{0}" exited with returncode {1}'
-          raise RuntimeError(message.format(command_args[0], code))
-    return True
+    Raises:
+      RuntimeError: If the target or one of its dependencies is not set-up.
+    """
+
+    if not self.is_setup:
+      raise RuntimeError('target "{0}" not set-up'.format(self.identifier))
+
+    writer.comment('Target: {0}'.format(self.identifier))
+
+    # The outputs of depending targets must be listed additionally
+    # to the actual input files of this target, otherwise ninja can
+    # not know the targets depend on each other.
+    infiles = set()
+
+    for dep in self.dependencies:
+      if not dep.is_setup:
+        raise RuntimeError('target "{0}" not set-up'.format(dep.identifier))
+      for entry in dep.command_data:
+        infiles |= set(map(creator.utils.normpath, entry['outputs']))
+
+    infiles = list(infiles)
+    phonies = []
+
+    for index, entry in enumerate(self.command_data):
+      if len(entry['commands']) != 1:
+        raise RuntimeError('Creator currently only supports one command per target.')
+
+      rule_name = self.identifier + '_{0:04d}'.format(index)
+      rule_name = creator.ninja.ident(rule_name)
+      writer.rule(rule_name, entry['commands'])
+
+      writer.build(entry['outputs'], rule_name, list(entry['inputs']) + infiles)
+      writer.newline()
+
+      phonies.extend(entry['outputs'])
+
+    writer.build(creator.ninja.ident(self.identifier), 'phony', phonies)
