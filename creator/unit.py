@@ -160,6 +160,7 @@ class Unit(object):
     self.workspace = workspace
     self.aliases = {'self': self.identifier}
     self.targets = {}
+    self.tasks = {}
     self.context = UnitContext(self)
     self.scope = self._create_scope()
 
@@ -212,6 +213,28 @@ class Unit(object):
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
 
+  def confirm(self, text, stack_depth=0):
+    """
+    Asks the user for a confirmation via stdin after expanding the
+    *text* and appending it with ``'[Y/n]``.
+
+    Args:
+      text (str): The text to print
+    Returns:
+      bool: True if the user said yes, False if he or she said no.
+    """
+
+    text = self.eval(text, stack_depth=stack_depth + 1)
+    while True:
+      response = input('[{0}]: {1} [Y/n]'.format(self.identifier, text))
+      response = response.strip().lower()
+      if response in ('y', 'yes'):
+        return True
+      elif response in ('n', 'no'):
+        return False
+      else:
+        print("Please reply Yes or No.", end=' ')
+
   def define(self, name, value):
     self.context[name] = value
 
@@ -230,22 +253,6 @@ class Unit(object):
       except KeyError:
         return False
     return context.has_macro(varname) or self.workspace.context.has_macro(name)
-
-  def target(self, func):
-    """
-    Wraps a Python function and returns a :class:`creator.target.FuncTarget`
-    object that will be filled with information by the wrapped function.
-    Targets are filled after all unit scripts are loaded and not
-    immediately when a script is run.
-    """
-
-    if not callable(func):
-      raise TypeError('func must be callable', type(func))
-    if func.__name__ in self.targets:
-      raise ValueError('target "{0}" already exists'.format(func.__name__))
-    target = creator.target.Target(self, func.__name__, func, False)
-    self.targets[func.__name__] = target
-    return target
 
   def eval(self, text, supp_context=None, stack_depth=0):
     """
@@ -271,6 +278,40 @@ class Unit(object):
     macro = creator.macro.parse(text, context)
     return macro.eval(context, [])
 
+  def extends(self, identifier):
+    """
+    Loads all the contents of the Unit with the specified *identifier*
+    into the scope of this Unit and substitutes the context references
+    in the original macros with the context of this unit.
+
+    Args:
+      identifier (str): The name of the unit to inherit from.
+    Returns:
+      Unit: The Unit matching the *identifier*.
+    """
+
+    unit = self.load(identifier)
+    self.context.update(unit.context, context_switch=True)
+    return unit
+
+  def foreach_split(self, inputs, outputs, stack_depth=0):
+    """
+    Shortcut for ``zip(split(eval(inputs)), split(eval(outputs)))``.
+    """
+
+    eval = self.eval
+    inputs = creator.utils.split(eval(inputs, stack_depth=stack_depth + 1))
+    outputs = creator.utils.split(eval(outputs, stack_depth=stack_depth + 1))
+    return zip(inputs, outputs)
+
+  def info(self, *args, **kwargs):
+    items = []
+    for arg in args:
+      if isinstance(arg, str):
+        arg = self.eval(arg, stack_depth=1)
+      items.append(arg)
+    print('[{0}]:'.format(self.identifier), *items, **kwargs)
+
   def load(self, identifier, alias=None):
     """
     Loads a unit script and makes it available globally. If *alias* is
@@ -291,29 +332,16 @@ class Unit(object):
       self.aliases[alias] = identifier
     return unit
 
-  def extends(self, identifier):
+  def run_unit_script(self, filename):
     """
-    Loads all the contents of the Unit with the specified *identifier*
-    into the scope of this Unit and substitutes the context references
-    in the original macros with the context of this unit.
-
-    Args:
-      identifier (str): The name of the unit to inherit from.
-    Returns:
-      Unit: The Unit matching the *identifier*.
+    Executes the Python unit script at *filename* for this unit.
     """
 
-    unit = self.load(identifier)
-    self.context.update(unit.context, context_switch=True)
-    return unit
-
-  def info(self, *args, **kwargs):
-    items = []
-    for arg in args:
-      if isinstance(arg, str):
-        arg = self.eval(arg, stack_depth=1)
-      items.append(arg)
-    print('[{0}]:'.format(self.identifier), *items, **kwargs)
+    with open(filename) as fp:
+      code = compile(fp.read(), filename, 'exec', dont_inherit=True)
+    self.scope['__file__'] = filename
+    self.scope['__name__'] = '__crunit__'
+    exec(code, self.scope)
 
   def shell(self, command, stack_depth=0):
     """
@@ -326,48 +354,21 @@ class Unit(object):
     command = self.eval(command, stack_depth=stack_depth + 1)
     return creator.utils.Shell(shlex.split(command))
 
-  def confirm(self, text, stack_depth=0):
+  def target(self, func):
     """
-    Asks the user for a confirmation via stdin after expanding the
-    *text* and appending it with ``'[Y/n]``.
-
-    Args:
-      text (str): The text to print
-    Returns:
-      bool: True if the user said yes, False if he or she said no.
+    Wraps a Python function and returns a :class:`creator.target.FuncTarget`
+    object that will be filled with information by the wrapped function.
+    Targets are filled after all unit scripts are loaded and not
+    immediately when a script is run.
     """
 
-    text = self.eval(text, stack_depth=stack_depth + 1)
-    while True:
-      response = input('[{0}]: {1} [Y/n]'.format(self.identifier, text))
-      response = response.strip().lower()
-      if response in ('y', 'yes'):
-        return True
-      elif response in ('n', 'no'):
-        return False
-      else:
-        print("Please reply Yes or No.", end=' ')
-
-  def foreach_split(self, inputs, outputs, stack_depth=0):
-    """
-    Shortcut for ``zip(split(eval(inputs)), split(eval(outputs)))``.
-    """
-
-    eval = self.eval
-    inputs = creator.utils.split(eval(inputs, stack_depth=stack_depth + 1))
-    outputs = creator.utils.split(eval(outputs, stack_depth=stack_depth + 1))
-    return zip(inputs, outputs)
-
-  def run_unit_script(self, filename):
-    """
-    Executes the Python unit script at *filename* for this unit.
-    """
-
-    with open(filename) as fp:
-      code = compile(fp.read(), filename, 'exec', dont_inherit=True)
-    self.scope['__file__'] = filename
-    self.scope['__name__'] = '__crunit__'
-    exec(code, self.scope)
+    if not callable(func):
+      raise TypeError('func must be callable', type(func))
+    if func.__name__ in self.targets:
+      raise ValueError('target "{0}" already exists'.format(func.__name__))
+    target = creator.target.Target(self, func.__name__, func, False)
+    self.targets[func.__name__] = target
+    return target
 
 
 class WorkspaceContext(creator.macro.MutableContext):
