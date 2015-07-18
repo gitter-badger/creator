@@ -84,7 +84,8 @@ def main(argv=None):
     if not files:
       parser.error('no *.crunit file in the current directory')
     elif len(files) > 1:
-      parser.error('multiple *.crunit files in the current directory')
+      parser.error('multiple *.crunit files in the current '
+        'directory, use -I/--identifier to specify which.')
     args.identifier = creator.utils.set_suffix(os.path.basename(files[0]), '')
 
   # Load the unit script.
