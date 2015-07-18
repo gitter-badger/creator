@@ -18,15 +18,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 """
-Creator - software build automation tool
-========================================
+Creator - Meta build system for ninja
+=====================================
 
-Visit https://github.com/NiklasRosenstein/py-creator/wiki.
+Visit https://github.com/creator-build/creator/wiki.
 """
 
 __author__ = 'Niklas Rosenstein <rosensteinniklas(at)gmail.com>'
-__version__ = '0.0.2'
-__url__ = 'https://github.com/NiklasRosenstein/py-creator/wiki'
+__version__ = '0.0.3-dev'
+__url__ = 'https://github.com/creator-build/creator/wiki'
 
 import sys
 if sys.version_info[0] != 3:

@@ -25,7 +25,7 @@ import setuptools
 long_description = ''
 setuptools.setup(
   name='creator-build',
-  version='0.0.2',
+  version='0.0.3-dev',
   description='Meta Build System for Ninja',
   long_description=long_description,
   author='Niklas Rosenstein',
