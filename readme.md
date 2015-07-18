@@ -42,6 +42,11 @@ def say_hello():
   info('Hello $USERNAME')
 ```
 
+```
+$ creator ninja
+$ creator call say_hello
+```
+
 __Requirements__
 
 - Python 3
