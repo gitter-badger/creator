@@ -36,6 +36,10 @@ define('Program', '$(p:bin $BuildDir/main)')
 @target
 def program():
   program.add('$Sources', '$Program', '$c:cpp $c:wall $(c:binout $@) $"{$<}')
+
+@task
+def say_hello():
+  info('Hello $USERNAME')
 ```
 
 __Requirements__
