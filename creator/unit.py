@@ -54,6 +54,18 @@ class Workspace(object):
     self.context = WorkspaceContext(self)
     self.units = {}
 
+  def get_unit(self, identifier):
+    """
+    Returns:
+      Unit: The unit by the *identifier*
+    Raises:
+      ValueError: If there is no unit with the specified *identifier*.
+    """
+
+    if identifier not in self.units:
+      raise ValueError('no such unit', identifier)
+    return self.units[identifier]
+
   def find_unit(self, identifier):
     """
     Searches for the filename of a unit in the search :attr:`path`.
@@ -175,12 +187,13 @@ class Unit(object):
       'workspace': self.workspace,
       'C': self.context,
       'G': self.workspace.context,
+      'call': self.call,
+      'confirm': self.confirm,
       'define': self.define,
       'defined': self.defined,
       'eval': self.eval,
       'exit': sys.exit,
       'extends': self.extends,
-      'confirm': self.confirm,
       'foreach_split': self.foreach_split,
       'info': self.info,
       'join': creator.utils.join,
@@ -189,6 +202,7 @@ class Unit(object):
       'split': creator.utils.split,
       'shell': self.shell,
       'target': self.target,
+      'task': self.task,
       'ExitCodeError': creator.utils.Shell.ExitCodeError,
     }
 
@@ -212,6 +226,27 @@ class Unit(object):
 
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
+
+  def call(self, task_name):
+    """
+    Invokes the task with the specified *task_name*. Namespace names will
+    be resolved by this function or the local namespace is used if a
+    relative identifier is specified.
+
+    Args:
+      task_name (str): The name of the task to invoke.
+    """
+
+    namespace, varname = creator.utils.parse_var(task_name)
+    if namespace is None:
+      tasks = self.tasks
+    else:
+      tasks = self.workspace.get_unit(namespace).tasks
+
+    if task_name not in tasks:
+      raise ValueError('no task such task', task_name)
+
+    return tasks[task_name]()
 
   def confirm(self, text, stack_depth=0):
     """
@@ -369,6 +404,19 @@ class Unit(object):
     target = creator.target.Target(self, func.__name__, func, False)
     self.targets[func.__name__] = target
     return target
+
+  def task(self, func):
+    """
+    Decorator for Python functions which can be invoked from the Creator
+    command-line as tasks. The name of the function is used as task name.
+    """
+
+    if not callable(func):
+      raise TypeError('func must be callable', type(func))
+    if func.__name__ in self.tasks:
+      raise ValueError('task name already reserved', func.__name__)
+    self.tasks[func.__name__] = func
+    return func
 
 
 class WorkspaceContext(creator.macro.MutableContext):

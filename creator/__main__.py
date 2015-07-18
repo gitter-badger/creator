@@ -59,6 +59,12 @@ ninja_parser.add_argument('args', nargs='*', default=[],
   help="Additional arguments for the ninja invocation.")
 
 
+call_parser = subparser.add_parser('call')
+call_parser.add_argument('tasks', nargs='+', help='One or more tasks to call.')
+call_parser.add_argument('-D', '--define', default=[], action='append')
+call_parser.add_argument('-M', '--macro', default=[], action='append')
+
+
 def main(argv=None):
   if argv is None:
     argv = sys.argv[1:]
@@ -98,6 +104,9 @@ def main(argv=None):
     return 0
   elif args.command == 'ninja':
     return cmd_ninja(args, workspace, unit)
+  elif args.command == 'call':
+    for task in args.task:
+      unit.call(task)
   else:
     raise RuntimeError('unexpected command', args.command)
 
