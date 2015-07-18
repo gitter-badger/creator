@@ -15,6 +15,7 @@ __Features__
 - Built-in set of Unit Scripts for platform independency
 - Full control over the build process from the command-line
 - native support for the [ninja][] build system
+- Mix build definitions with custom tasks (Python functions)
 
 __Quick Reference__
 
