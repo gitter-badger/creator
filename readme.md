@@ -41,7 +41,7 @@ def say_hello():
 
 ```
 $ creator ninja
-$ creator call say_hello
+$ creator run say_hello
 ```
 
 __Requirements__

@@ -187,7 +187,7 @@ class Unit(object):
       'workspace': self.workspace,
       'C': self.context,
       'G': self.workspace.context,
-      'call': self.call,
+      'run_task': self.run_task,
       'confirm': self.confirm,
       'define': self.define,
       'defined': self.defined,
@@ -227,7 +227,7 @@ class Unit(object):
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
 
-  def call(self, task_name):
+  def run_task(self, task_name):
     """
     Invokes the task with the specified *task_name*. Namespace names will
     be resolved by this function or the local namespace is used if a
