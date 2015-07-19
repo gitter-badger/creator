@@ -11,10 +11,10 @@ bug reports are welcome!
 __Features__
 
 - Creator is simple (and pure Python)
+- Exports [ninja][] build rules 
 - Modular approach to build definitions
 - Built-in set of Unit Scripts for platform independency
 - Full control over the build process from the command-line
-- native support for the [ninja][] build system
 - Mix build definitions with custom tasks (Python functions)
 
 __Quick Reference__
@@ -44,7 +44,7 @@ def say_hello():
 
 ```
 $ creator ninja
-$ creator call say_hello
+$ creator run say_hello
 ```
 
 __Requirements__
