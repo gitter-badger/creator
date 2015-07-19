@@ -1,20 +1,17 @@
-*Creator* - software build automation tool
-==========================================
+*Creator* - Meta build system for ninja
+=======================================
 
-*Creator* is a Python based software build automation tool outputting
-[ninja][] build files based on *"Unit Scripts"*. The project is
-licensed under the MIT license. Check out the [Wiki][] for more information!
+*Creator* is a Python based meta build system for [ninja][] which are generated from *Unit Scripts*. The project is licensed under the MIT license. Check out the [Wiki][] for more information!
 
-Note that Creator is in a very early stage. Contributions, questions and
-bug reports are welcome!
+Note that Creator is in a very early stage. Contributions, questions and bug reports are welcome!
 
 __Features__
 
 - Creator is simple (and pure Python)
+- Exports [ninja][] build rules 
 - Modular approach to build definitions
 - Built-in set of Unit Scripts for platform independency
 - Full control over the build process from the command-line
-- native support for the [ninja][] build system
 - Mix build definitions with custom tasks (Python functions)
 
 __Quick Reference__
