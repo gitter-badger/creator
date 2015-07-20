@@ -31,7 +31,7 @@ import traceback
 
 
 parser = argparse.ArgumentParser(
-  description='Creator - software build automation tool')
+  prog='creator', description='Creator - software build automation tool')
 parser.add_argument(
   '-D', '--define', help='Define a global variable that is accessible '
   'to all unit scripts. If no value is specified, it will be set to '
