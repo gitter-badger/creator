@@ -109,7 +109,7 @@ def main(argv=None):
   elif args.command == 'ninja':
     return cmd_ninja(args, workspace, unit)
   elif args.command == 'run':
-    for task in args.task:
+    for task in args.tasks:
       unit.run_task(task)
   else:
     raise RuntimeError('unexpected command', args.command)
