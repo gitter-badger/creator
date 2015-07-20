@@ -99,7 +99,7 @@ def create_var(namespace, varname):
   *namespace*.
   """
 
-  if namespace:
+  if namespace is not None:
     return namespace + ':' + varname
   return varname
 

@@ -51,6 +51,10 @@ subparser = parser.add_subparsers(dest='command')
 
 
 ninja_parser = subparser.add_parser('ninja')
+ninja_parser.add_argument('-t', '--target', default=[], action='append',
+  help="Specify one or more default targets to build when ninja is "
+  "invoked without a specific target. If omitted, ninja will build "
+  "everything.")
 ninja_parser.add_argument('-N', '--no-build', action='store_true',
   help="Don't run ninja after exporting the `ninja.build` file.")
 ninja_parser.add_argument('-D', '--define', default=[], action='append')
@@ -113,7 +117,7 @@ def main(argv=None):
 
 def cmd_ninja(args, workspace, unit):
   with open('build.ninja', 'w') as fp:
-    creator.ninja.export(workspace, fp)
+    creator.ninja.export(fp, workspace, unit, args.target)
   print("creator: exported to build.ninja")
   if not args.no_build:
     return subprocess.call(['ninja'] + args.args)
