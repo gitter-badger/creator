@@ -21,7 +21,6 @@
 import creator.utils
 import abc
 import glob
-import nr.strex
 import os
 import string
 import sys
@@ -476,7 +475,7 @@ class Parser(object):
 
     if context is not None and not isinstance(context, ContextProvider):
       raise TypeError('context must be None or ContextProvider', type(context))
-    scanner = nr.strex.Scanner(text.strip())
+    scanner = creator.utils.Scanner(text.strip())
     return self._parse_arg(scanner, context, closing_at='')
 
   def _parse_arg(self, scanner, context, closing_at):

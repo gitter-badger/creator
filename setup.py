@@ -31,7 +31,6 @@ setuptools.setup(
   author='Niklas Rosenstein',
   author_email='rosensteinniklas@gmail.com',
   url='https://github.com/creator-build/creator',
-  install_requires=['nr.strex>=1.3'],
   py_modules=['creator'],
   packages=setuptools.find_packages('.'),
   package_dir={'': '.'},

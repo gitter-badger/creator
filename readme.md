@@ -43,9 +43,7 @@ $ creator run say_hello
 __Requirements__
 
 - Python 3
-- [nr.strex][]
 - [ninja][]
 
 [ninja]: https://github.com/martine/ninja
-[nr.strex]: https://github.com/NiklasRosenstein/nr.strex
 [Wiki]: https://github.com/creator-build/creator/wiki
