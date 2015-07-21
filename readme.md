@@ -23,12 +23,18 @@ load('compiler', 'c')
 
 if not defined('BuildDir'):
   define('BuildDir', '$ProjectPath/build')
-define('Sources', '$*($ProjectPath/*.cpp)')
+define('Sources', '$(wildcard $ProjectPath/src/*.cpp)')
+define('Objects', '$(p:obj $(move $Sources, $ProjectPath/src, $BuildDir/obj))')
 define('Program', '$(p:bin $BuildDir/main)')
 
 @target
+def objects():
+  objects.build_each(
+    '$Sources', '$Objects', '$c:cpp $c:wall $(c:objout $@) $"<')
+
+@target
 def program():
-  program.add('$Sources', '$Program', '$c:cpp $c:wall $(c:binout $@) $!<')
+  program.build('$Objects', '$Program', '$c:cpp $(c:binout $@) $!<')
 
 @task
 def say_hello():
@@ -36,8 +42,7 @@ def say_hello():
 ```
 
 ```
-$ creator ninja
-$ creator run say_hello
+$ creator program say_hello
 ```
 
 __Requirements__
