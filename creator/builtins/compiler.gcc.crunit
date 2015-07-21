@@ -25,6 +25,7 @@ define('compileonly', '-c')
 define('wall', '-Wall')
 define('cpp11', '-std=c++11')
 define('g', '-g')
+define('no_exceptions', '-fno-exceptions')
 
 define('include', '$(quotesplit $(addprefix -I,$0))')
 define('define', '$(quotesplit $(addprefix -D,$0))')
