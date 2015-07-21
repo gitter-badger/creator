@@ -41,7 +41,10 @@ parser.add_argument('-M', '--macro', help='The same as -D/--define but '
   ' evaluates like a macro. Remember that backslashes must be escaped, etc.',
   default=[], action='append')
 parser.add_argument('-i', '--unitpath', help='Add an additional path to '
-  'search for unit scripts to the workspace.', default=[], action='append')
+  'search for unit scripts to the workspace. The environment variable '
+  'CREATORPATH is taken into account automatically as the search path '
+  'additionally to the built-in script path and the current directory.',
+  default=[], action='append')
 parser.add_argument('-u', '--unit', help='The identifier of the unit to '
   'take as the main build unit. If this argument is omitted, it will be '
   'determined from the files in the current directory. There must only be '
@@ -146,7 +149,8 @@ def main(argv=None):
   # If we have any buildable targets specified, no targets specified at
   # all or if we should only export the build definitions, do exactly that.
   if not args.no_export and (args.export or defaults or not targets):
-    log("exporting: {0}".format(args.output))
+    from creator.utils import ttyf
+    log("exporting to: {0}".format(args.output))
     with open(args.output, 'w') as fp:
       creator.ninja.export(fp, workspace, unit, defaults)
     if args.export:
