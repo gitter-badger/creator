@@ -246,79 +246,79 @@ Cursor = collections.namedtuple('Cursor', 'position lineno colno')
 
 class Scanner(object):
 
-    def __init__(self, content):
-        self._content = content
-        self.position = 0
-        self.lineno = 1
-        self.colno = 0
+  def __init__(self, content):
+    self._content = content
+    self.position = 0
+    self.lineno = 1
+    self.colno = 0
 
-    def __repr__(self):
-        return '<Scanner at {} line:{} col:{}>'.format(*self.state())
+  def __repr__(self):
+    return '<Scanner at {} line:{} col:{}>'.format(*self.state())
 
-    def __bool__(self):
-        return self.position < len(self._content)
+  def __bool__(self):
+    return self.position < len(self._content)
 
-    __nonzero__ = __bool__
+  __nonzero__ = __bool__
 
-    def state(self):
-        return Cursor(self.position, self.lineno, self.colno)
+  def state(self):
+    return Cursor(self.position, self.lineno, self.colno)
 
-    def restore(self, state):
-        self.position, self.lineno, self.colno = state
+  def restore(self, state):
+    self.position, self.lineno, self.colno = state
 
-    @property
-    def char(self):
-        if self.position < len(self._content):
-            return self._content[self.position]
-        else:
-            return type(self._content)()
+  @property
+  def char(self):
+    if self.position < len(self._content):
+      return self._content[self.position]
+    else:
+      return type(self._content)()
 
-    def next(self):
-        char = self.char
-        if not char:
-            return char
-        if char == '\n':
-            self.lineno += 1
-            self.colno = 0
-        else:
-            self.colno += 1
-        self.position += 1
-        return self.char
+  def next(self):
+    char = self.char
+    if not char:
+      return char
+    if char == '\n':
+      self.lineno += 1
+      self.colno = 0
+    else:
+      self.colno += 1
+    self.position += 1
+    return self.char
 
-    def match(self, regex):
-        match = regex.match(self._content, self.position)
-        if not match:
-            return None
+  def match(self, regex):
+    match = regex.match(self._content, self.position)
+    if not match:
+      return None
 
-        text = match.group()
-        lines = text.count('\n')
+    text = match.group()
+    lines = text.count('\n')
 
-        self.position = match.end()
-        self.lineno += lines
-        if lines:
-            self.colno = 0
-            self.colno = len(text) - text.rfind('\n') - 1
-        else:
-            self.colno += len(text)
+    self.position = match.end()
+    self.lineno += lines
+    if lines:
+      self.colno = 0
+      self.colno = len(text) - text.rfind('\n') - 1
+    else:
+      self.colno += len(text)
 
-        return match
+    return match
 
-    def consume_set(self, charset, invert=False, maxc=-1):
-        """
-        Consumes all characters that occur in the *charset* up to a
-        total number of *maxc* characters.
-        """
+  def consume_set(self, charset, invert=False, maxc=-1):
+    """
+    Consumes all characters that occur in the *charset* up to a
+    total number of *maxc* characters.
+    """
 
-        result = type(self._content)()
-        char = self.char
-        while char:
-            if maxc >= 0 and len(result) >= maxc:
-                break
-            if not invert and char in charset:
-                result += char
-            elif invert and char not in charset:
-                result += char
-            else:
-                break
-            char = self.next()
-        return result
+    result = type(self._content)()
+    char = self.char
+    while char:
+      if maxc >= 0 and len(result) >= maxc:
+        break
+      if not invert and char in charset:
+        result += char
+      elif invert and char not in charset:
+        result += char
+      else:
+        break
+      char = self.next()
+    return result

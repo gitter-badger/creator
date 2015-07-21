@@ -726,7 +726,6 @@ class Task(object):
     return self.unit.workspace
 
 
-
 class WorkspaceContext(creator.macro.MutableContext):
   """
   This class implements the :class:`creator.macro.ContextProvider`
