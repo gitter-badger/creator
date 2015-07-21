@@ -30,26 +30,24 @@ define('Program', '$(p:bin $BuildDir/main)')
 @target
 def objects():
   objects.build_each(
-    '$Sources', '$Objects', '$c:cpp $(c:objout $@) $"<')
+    '$Sources', '$Objects', '$c:cpp $(c:objout $@) $(quote $<)')
 
 @target
 def program():
-  program.build('$Objects', '$Program', '$c:cpp $(c:binout $@) $!<')
+  program.build('$Objects', '$Program', '$c:cpp $(c:binout $@) $(quotesplit $<)')
 
 @task
 def run():
-  import subprocess
-  subprocess.call([eval('$Program')])
+  shell('$(quote $Program)')
 ```
 
 ```
 ~/Desktop/hello_world $ creator program run
 creator: exporting to: build.ninja
 creator: running: ninja -f build.ninja test_program
-[1/2] cl /nologo /FoC:\Users\niklas\Desktop\hel...\niklas\Desktop\hello_world\src\main.cpp
+[1/2] cl /nologo /EHsc /FoC:\Users\niklas\Desktop\rep...\Users\niklas\Desktop\repos\creator\test\src\main.cpp
 main.cpp
-C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\INCLUDE\xlocale(336) : warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
-[2/2] cl /nologo /FeC:\Users\niklas\Desktop\hel...\niklas\Desktop\hello_world\build\obj\main.obj
+[2/2] cl /nologo /EHsc /FeC:\Users\niklas\Desktop\rep...\niklas\Desktop\repos\creator\test\build\obj\main.obj
 creator: running task 'test:run'
 Hello, World!
 ```
