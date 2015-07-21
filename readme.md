@@ -30,19 +30,28 @@ define('Program', '$(p:bin $BuildDir/main)')
 @target
 def objects():
   objects.build_each(
-    '$Sources', '$Objects', '$c:cpp $c:wall $(c:objout $@) $"<')
+    '$Sources', '$Objects', '$c:cpp $(c:objout $@) $"<')
 
 @target
 def program():
   program.build('$Objects', '$Program', '$c:cpp $(c:binout $@) $!<')
 
 @task
-def say_hello():
-  info('Hello $USERNAME')
+def run():
+  import subprocess
+  subprocess.call([eval('$Program')])
 ```
 
 ```
-$ creator program say_hello
+~/Desktop/hello_world $ creator program run
+creator: exporting to: build.ninja
+creator: running: ninja -f build.ninja test_program
+[1/2] cl /nologo /FoC:\Users\niklas\Desktop\hel...\niklas\Desktop\hello_world\src\main.cpp
+main.cpp
+C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\INCLUDE\xlocale(336) : warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
+[2/2] cl /nologo /FeC:\Users\niklas\Desktop\hel...\niklas\Desktop\hello_world\build\obj\main.obj
+creator: running task 'test:run'
+Hello, World!
 ```
 
 __Requirements__
