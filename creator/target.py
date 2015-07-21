@@ -27,7 +27,10 @@ import creator.macro
 import creator.unit
 import creator.utils
 import creator.ninja
+import warnings
 import weakref
+
+from creator.macro import TextNode as raw
 
 
 class Target(object):
@@ -62,6 +65,19 @@ class Target(object):
     listeners (list of callable): A list of functions listening to
       certain events of the target. The functions are invoked with
       the three arguments ``(target, event, data)``.
+    command_data (list of dict): A list of build commands. Each entry
+      is a dictionary with the keys ``'inputs', 'outputs', 'command',
+      'auxiliary'``.
+
+  Listener Events:
+    - ``'do_setup'``: Sent when :meth:`do_setup` is called. There is
+      no data for this event.
+    - ``'build'``: Sent when :meth:`build` is called. The data for
+      this event is a dictionary ``{'inputs': str, 'outputs': str,
+        'command': str, 'auxiliary': [], 'each': bool}``. The listener
+        is allowed to modify the event data. The auxiliary list can be
+        filled with a list of files that are taken as additional
+        dependencies.
   """
 
   def __init__(
@@ -147,7 +163,13 @@ class Target(object):
       target.do_setup()
     self.dependencies.append(target)
 
-  def add(self, inputs, outputs, *commands):
+  def add(self, *args, **kwargs):
+    warnings.warn("Target.add() is deprecated, use "
+      "Target.build() instead", DeprecationWarning)
+    kwargs.setdefault('stack_depth', 1)
+    return self.build(*args, **kwargs)
+
+  def build(self, inputs, outputs, command, each=False, stack_depth=0):
     """
     Associated the *inputs* with the *outputs* being built by the
     specified *\*commands*. All parameters passed to this function must
@@ -158,42 +180,71 @@ class Target(object):
 
     - ``'inputs'``: A list of input files.
     - ``'outputs'``: A list of output files.
-    - ``'commands'``: A list of the commands to produce the files.
+    - ``'command'``: A command to produce the output files.
 
     Args:
       inputs (str): A listing of the input files.
       outputs (str): A listing of the output files.
-      *commands (tuple of str): One or more commands to build the
-        outputs from the inputs The special variables ``$<`` and
-        ``$@`` are available to the macros specified to this parameter.
-        **Note**: Currently, Creator only supports one command per target.
+      command (str): A command to build the outputs from the inputs. The
+        special variables `$<` and `$@` represent the input and output.
+        The variables `$in` and `$out` will automatically be escaped so
+        they will be exported to the ninja rule.
+      each (bool): If True, the files will be built each on its own,
+        but it expects the caller to use the ``$in`` and ``$out`` macros.
     """
 
-    if len(commands) != 1:
-      raise RuntimeError('Creator currently only supports one command per target.')
+    stack_depth += 1
 
-    data = {'inputs': inputs, 'outputs': outputs, 'commands': commands}
+    # Invoke the listeners and allow them to modify the input data.
+    # Eg. a plugin could add the header files that are required for
+    # the build to the input files.
+    data = {
+      'inputs': inputs, 'outputs': outputs,
+      'command': command, 'auxiliary': [], 'each': each,
+    }
+    del inputs, outputs, command
     for listener in self.listeners:
-      listener(self, 'add', data)
-    inputs, outputs, commands = data['inputs'], data['outputs'], data['commands']
+      listener(self, 'build', data)
 
-    input_files = creator.utils.split(self.unit.eval(inputs, stack_depth=1))
+    # Evaluate and split the input files into a list.
+    input_files = creator.utils.split(self.unit.eval(
+      data['inputs'], stack_depth=stack_depth))
     input_files = [creator.utils.normpath(f) for f in input_files]
-    output_files = creator.utils.split(self.unit.eval(outputs, stack_depth=1))
+
+    # Evaluate and split the output files into a list.
+    output_files = creator.utils.split(self.unit.eval(
+      data['outputs'], stack_depth=stack_depth))
     output_files = [creator.utils.normpath(f) for f in output_files]
 
-    supp_context = creator.macro.MutableContext()
-    supp_context['<'] = creator.macro.TextNode(creator.utils.join(input_files))
-    supp_context['@'] = creator.macro.TextNode(creator.utils.join(output_files))
-    eval_commands = []
-    for command in commands:
-      command = self.unit.eval(command, supp_context, stack_depth=1)
-      eval_commands.append(command)
-    self.command_data.append({
-      'inputs': input_files,
-      'outputs': output_files,
-      'commands': eval_commands
-    })
+    context = creator.macro.MutableContext()
+
+    if each:
+      if len(input_files) != len(output_files):
+        raise ValueError('input file count must match output file count')
+      for fin, fout in zip(input_files, output_files):
+        context['<'] = raw(fin)
+        context['@'] = raw(fout)
+        command = self.unit.eval(data['command'], context, stack_depth=stack_depth)
+        self.command_data.append({
+          'inputs': [fin],
+          'outputs': [fout],
+          'auxiliary': data['auxiliary'],
+          'command': command,
+        })
+    else:
+      context['<'] = raw(creator.utils.join(input_files))
+      context['@'] = raw(creator.utils.join(output_files))
+      command = self.unit.eval(data['command'], context, stack_depth=stack_depth)
+      self.command_data.append({
+        'inputs': input_files,
+        'outputs': output_files,
+        'auxiliary': data['auxiliary'],
+        'command': command,
+      })
+
+  def build_each(self, inputs, outputs, command, stack_depth=0):
+    stack_depth += 1
+    return self.build(inputs, outputs, command, each=True, stack_depth=stack_depth)
 
   def export(self, writer):
     """
@@ -224,16 +275,15 @@ class Target(object):
     phonies = []
 
     for index, entry in enumerate(self.command_data):
-      if len(entry['commands']) != 1:
-        raise RuntimeError('Creator currently only supports one command per target.')
-
       rule_name = self.identifier + '_{0:04d}'.format(index)
       rule_name = creator.ninja.ident(rule_name)
-      writer.rule(rule_name, entry['commands'])
+      writer.rule(rule_name, entry['command'])
 
-      writer.build(entry['outputs'], rule_name, list(entry['inputs']) + infiles)
+      assert len(entry['outputs']) != 0
+      inputs = list(entry['inputs']) + infiles + entry['auxiliary']
+      writer.build(entry['outputs'], rule_name, inputs)
+
       writer.newline()
-
       phonies.extend(entry['outputs'])
 
     writer.build(creator.ninja.ident(self.identifier), 'phony', phonies)

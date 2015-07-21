@@ -24,6 +24,7 @@ import creator.target
 import os
 import shlex
 import sys
+import warnings
 import weakref
 
 
@@ -333,6 +334,9 @@ class Unit(object):
     """
     Shortcut for ``zip(split(eval(inputs)), split(eval(outputs)))``.
     """
+
+    warnings.warn("foreach_split() is deprecated, use "
+      "Target.build_each() instead", DeprecationWarning)
 
     eval = self.eval
     inputs = creator.utils.split(eval(inputs, stack_depth=stack_depth + 1))
