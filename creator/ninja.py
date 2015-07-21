@@ -18,11 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from creator.vendor.ninja_syntax import Writer
-import creator.target
 import creator.utils
-
 import re
+
+from creator.vendor.ninja_syntax import Writer
 
 
 def export(fp, workspace, unit, default_targets=()):

@@ -19,13 +19,15 @@
 # THE SOFTWARE.
 
 import creator.macro
+import creator.ninja
 import creator.utils
-import creator.target
 import os
 import shlex
 import sys
 import warnings
 import weakref
+
+from creator.macro import TextNode as raw
 
 
 class UnitNotFoundError(Exception):
@@ -160,7 +162,7 @@ class Unit(object):
     context (ContextProvider): The local context of the unit.
     aliases (dict of str -> str): A mapping of alias names to fully
       qualified unit identifiers.
-    targets (dict of str -> creator.target.Target): A dictionary
+    targets (dict of str -> Target): A dictionary
       that maps the name of a target to the target object.
     scope (dict): A dictionary that contains the scope in which the unit
       script is being executed.
@@ -387,17 +389,17 @@ class Unit(object):
 
   def target(self, func):
     """
-    Wraps a Python function and returns a :class:`creator.target.FuncTarget`
-    object that will be filled with information by the wrapped function.
-    Targets are filled after all unit scripts are loaded and not
-    immediately when a script is run.
+    Wraps a Python function and returns a :class:`Target` object that
+    will be filled by the wrapped function on :meth:`Target.do_setup`.
+    Targets are set-up after all units are loaded and not immediately
+    when the function is wrapped.
     """
 
     if not callable(func):
       raise TypeError('func must be callable', type(func))
     if func.__name__ in self.targets:
       raise ValueError('target "{0}" already exists'.format(func.__name__))
-    target = creator.target.Target(self, func.__name__, func, False)
+    target = Target(self, func.__name__, func, False)
     self.targets[func.__name__] = target
     return target
 
@@ -413,6 +415,262 @@ class Unit(object):
       raise ValueError('task name already reserved', func.__name__)
     self.tasks[func.__name__] = func
     return func
+
+
+class Target(object):
+  """
+  This class represents one or multiple build targets under one common
+  identifier. It contains all the information necessary to generate the
+  required build commands.
+
+  A target has a set-up phase which is invoked after all units were
+  loaded and evaluated. After this phase is complete, the target should
+  be completely filled with all data.
+
+  Args:
+    unit (creator.unit.Unit): The unit this target belongs to.
+    name (str): The name of the target.
+    on_setup (callable): A Python function that is called on set-up.
+    pass_self (bool): True if the target should be passed as the first
+      argument to *on_setup*, False if not.
+    args (any): List of arguments passed to *on_setup*.
+    kwargs (any): List of keyword arguments passed to *on_setup*.
+
+  Attributes:
+    unit (creator.unit.Unit): The unit this target belongs to.
+    name (str): The name of the target.
+    identifier (str): The identifier of the target, which is the
+      units identifier and the targets name concatenated.
+    is_setup (bool): True if the target is set-up, False if not.
+    on_setup (callable)
+    pass_self (bool)
+    args (any)
+    kwargs (any)
+    listeners (list of callable): A list of functions listening to
+      certain events of the target. The functions are invoked with
+      the three arguments ``(target, event, data)``.
+    command_data (list of dict): A list of build commands. Each entry
+      is a dictionary with the keys ``'inputs', 'outputs', 'command',
+      'auxiliary'``.
+
+  Listener Events:
+    - ``'do_setup'``: Sent when :meth:`do_setup` is called. There is
+      no data for this event.
+    - ``'build'``: Sent when :meth:`build` is called. The data for
+      this event is a dictionary ``{'inputs': str, 'outputs': str,
+        'command': str, 'auxiliary': [], 'each': bool}``. The listener
+        is allowed to modify the event data. The auxiliary list can be
+        filled with a list of files that are taken as additional
+        dependencies.
+  """
+
+  def __init__(
+      self, unit, name, on_setup=None, pass_self=True,
+      args=(), kwargs=None):
+    if not isinstance(unit, creator.unit.Unit):
+      raise TypeError('unit must be creator.unit.Unit', type(unit))
+    if not isinstance(name, str):
+      raise TypeError('name must be str', type(name))
+    if not creator.utils.validate_identifier(name):
+      raise ValueError('name is not a valid identifier', name)
+    if on_setup is not None and not callable(on_setup):
+      raise TypeError('on_setup must be None or callable')
+    super().__init__()
+    self._unit = weakref.ref(unit)
+    self._name = name
+    self.is_setup = False
+    self.dependencies = []
+    self.on_setup = on_setup
+    self.pass_self = pass_self
+    self.args = args
+    self.kwargs = kwargs or {}
+    self.command_data = []
+    self.listeners = []
+
+  @property
+  def unit(self):
+    return self._unit()
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def identifier(self):
+    return self._unit().identifier + ':' + self._name
+
+  def do_setup(self):
+    """
+    Set up the targets internal data or dependencies. Call the parent
+    method after successful exit to set :attr:`is_setup` to True. Raise
+    an exception if something fails.
+
+    Raises:
+      RuntimeError: If the target is already set-up.
+    """
+
+    if self.is_setup:
+      raise RuntimeError('target "{0}" is already set-up'.format(self.identifier))
+
+    for listener in self.listeners:
+      listener(self, 'do_setup', None)
+
+    if self.on_setup is not None:
+      if self.pass_self:
+        self.on_setup(self, *self.args, **self.kwargs)
+      else:
+        self.on_setup(*self.args, **self.kwargs)
+
+    self.is_setup = True
+    return True
+
+  def requires(self, target):
+    """
+    Adds *target* as a dependency for this target. If the *target* is
+    not already set-up, it will be by this function.
+
+    Args:
+      target (str or Target): The target to build before the other.
+        If a string is passed, the target name is resolved in the
+        workspace.
+    """
+
+    if isinstance(target, str):
+      namespace, target = creator.utils.parse_var(target)
+      if not namespace:
+        namespace = self.unit.identifier
+      identifier = creator.utils.create_var(namespace, target)
+      target = self.unit.workspace.find_target(identifier)
+    elif not isinstance(target, Target):
+      raise TypeError('target must be Target object', type(target))
+    if not target.is_setup:
+      target.do_setup()
+    self.dependencies.append(target)
+
+  def add(self, *args, **kwargs):
+    warnings.warn("Target.add() is deprecated, use "
+      "Target.build() instead", DeprecationWarning)
+    kwargs.setdefault('stack_depth', 1)
+    return self.build(*args, **kwargs)
+
+  def build(self, inputs, outputs, command, each=False, stack_depth=0):
+    """
+    Associated the *inputs* with the *outputs* being built by the
+    specified *\*commands*. All parameters passed to this function must
+    be strings that are automatically and instantly evaluated as macros.
+
+    The data will be appended to :attr:`command_data` in the form of
+    a dictionary with the following keys:
+
+    - ``'inputs'``: A list of input files.
+    - ``'outputs'``: A list of output files.
+    - ``'command'``: A command to produce the output files.
+
+    Args:
+      inputs (str): A listing of the input files.
+      outputs (str): A listing of the output files.
+      command (str): A command to build the outputs from the inputs. The
+        special variables `$<` and `$@` represent the input and output.
+        The variables `$in` and `$out` will automatically be escaped so
+        they will be exported to the ninja rule.
+      each (bool): If True, the files will be built each on its own,
+        but it expects the caller to use the ``$in`` and ``$out`` macros.
+    """
+
+    stack_depth += 1
+
+    # Invoke the listeners and allow them to modify the input data.
+    # Eg. a plugin could add the header files that are required for
+    # the build to the input files.
+    data = {
+      'inputs': inputs, 'outputs': outputs,
+      'command': command, 'auxiliary': [], 'each': each,
+    }
+    del inputs, outputs, command
+    for listener in self.listeners:
+      listener(self, 'build', data)
+
+    # Evaluate and split the input files into a list.
+    input_files = creator.utils.split(self.unit.eval(
+      data['inputs'], stack_depth=stack_depth))
+    input_files = [creator.utils.normpath(f) for f in input_files]
+
+    # Evaluate and split the output files into a list.
+    output_files = creator.utils.split(self.unit.eval(
+      data['outputs'], stack_depth=stack_depth))
+    output_files = [creator.utils.normpath(f) for f in output_files]
+
+    context = creator.macro.MutableContext()
+
+    if each:
+      if len(input_files) != len(output_files):
+        raise ValueError('input file count must match output file count')
+      for fin, fout in zip(input_files, output_files):
+        context['<'] = raw(fin)
+        context['@'] = raw(fout)
+        command = self.unit.eval(data['command'], context, stack_depth=stack_depth)
+        self.command_data.append({
+          'inputs': [fin],
+          'outputs': [fout],
+          'auxiliary': data['auxiliary'],
+          'command': command,
+        })
+    else:
+      context['<'] = raw(creator.utils.join(input_files))
+      context['@'] = raw(creator.utils.join(output_files))
+      command = self.unit.eval(data['command'], context, stack_depth=stack_depth)
+      self.command_data.append({
+        'inputs': input_files,
+        'outputs': output_files,
+        'auxiliary': data['auxiliary'],
+        'command': command,
+      })
+
+  def build_each(self, inputs, outputs, command, stack_depth=0):
+    stack_depth += 1
+    return self.build(inputs, outputs, command, each=True, stack_depth=stack_depth)
+
+  def export(self, writer):
+    """
+    Export the target to the ninja file using the *writer*. The target
+    and all its dependencies must be set-up.
+
+    Raises:
+      RuntimeError: If the target or one of its dependencies is not set-up.
+    """
+
+    if not self.is_setup:
+      raise RuntimeError('target "{0}" not set-up'.format(self.identifier))
+
+    writer.comment('Target: {0}'.format(self.identifier))
+
+    # The outputs of depending targets must be listed additionally
+    # to the actual input files of this target, otherwise ninja can
+    # not know the targets depend on each other.
+    infiles = set()
+
+    for dep in self.dependencies:
+      if not dep.is_setup:
+        raise RuntimeError('target "{0}" not set-up'.format(dep.identifier))
+      for entry in dep.command_data:
+        infiles |= set(map(creator.utils.normpath, entry['outputs']))
+
+    infiles = list(infiles)
+    phonies = []
+
+    for index, entry in enumerate(self.command_data):
+      rule_name = self.identifier + '_{0:04d}'.format(index)
+      rule_name = creator.ninja.ident(rule_name)
+      writer.rule(rule_name, entry['command'])
+
+      assert len(entry['outputs']) != 0
+      inputs = list(entry['inputs']) + infiles + entry['auxiliary']
+      writer.build(entry['outputs'], rule_name, inputs)
+
+      writer.newline()
+      phonies.extend(entry['outputs'])
+
+    writer.build(creator.ninja.ident(self.identifier), 'phony', phonies)
 
 
 class WorkspaceContext(creator.macro.MutableContext):

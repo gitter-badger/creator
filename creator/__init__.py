@@ -32,8 +32,8 @@ import sys
 if sys.version_info[0] != 3:
   raise EnvironmentError('Creator {0} requires Python 3'.format(__version__))
 
-from creator import macro
-from creator import platform
-from creator import unit
-from creator import utils
-from creator import target
+import creator.macro
+import creator.ninja
+import creator.platform
+import creator.unit
+import creator.utils
