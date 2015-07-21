@@ -50,7 +50,7 @@ class Workspace(object):
   """
 
   def __init__(self):
-    super(Workspace, self).__init__()
+    super().__init__()
     self.path = ['.']
     self.path.append(os.path.join(os.path.dirname(__file__), 'builtins'))
     self.path.append(os.path.join(sys.prefix, 'creator'))
@@ -158,7 +158,7 @@ class Unit(object):
   """
 
   def __init__(self, project_path, identifier, workspace):
-    super(Unit, self).__init__()
+    super().__init__()
     self.project_path = project_path
     self.identifier = identifier
     self.workspace = workspace

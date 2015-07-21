@@ -433,7 +433,7 @@ class Function(ExpressionNode):
   """
 
   def __init__(self, func):
-    super(Function, self).__init__()
+    super().__init__()
     self.func = func
 
   @property
