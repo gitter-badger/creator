@@ -355,7 +355,9 @@ class Unit(object):
       if isinstance(arg, str):
         arg = self.eval(arg, stack_depth=1)
       items.append(arg)
-    print('[{0}]:'.format(self.identifier), *items, **kwargs)
+    print(creator.utils.ttyv(fg='cyan'), end='')
+    print('creator: [{0}]'.format(self.identifier), *items, **kwargs)
+    print(creator.utils.ttyv(reset=True), end='')
 
   def load(self, identifier, alias=None):
     """

@@ -49,6 +49,8 @@ __Requirements__
 
 - Python 3
 - [ninja][]
+- [colorama][] (optional)
 
 [ninja]: https://github.com/martine/ninja
+[colorama]: https://pypi.python.org/pypi/colorama
 [Wiki]: https://github.com/creator-build/creator/wiki

@@ -25,6 +25,55 @@ import re
 import shlex
 import subprocess
 
+try:
+  import colorama
+except ImportError:
+  colorama = None
+else:
+  colorama.init()
+
+
+def ttyv(fg=None, bg=None, attr=(), reset=False):
+  """
+  Generates ANSI escape sequences for the specified settings.
+
+  Args:
+    fg (str): The name of the foreground color to apply or None.
+    bg (str): The name of the background color to apply or None.
+    attr (str or list of str): The attribute name or a list of
+      attribute names to apply.
+    reset (bool): True to reset to default. Every other argument
+      will be ignored.
+  Returns:
+    str
+  """
+
+  if not colorama:
+    return ''
+  if reset:
+    return colorama.Style.RESET_ALL
+  s = ''
+  if fg is not None:
+    s += getattr(colorama.Fore, fg.upper())
+  if bg is not None:
+    s += getattr(colorama.Back, bg.upper())
+  if isinstance(attr, str):
+    attr = []
+  for name in attr:
+    s += getattr(colorama.Style, name.upper())
+  return s
+
+
+def ttyf(text, *args, **kwargs):
+  """
+  The same as :meth:`ttyv` but takes *text* and wraps it in the
+  specified tty visual settings and appends a reset command.
+  """
+
+  if not colorama:
+    return text
+  return ttyv(*args, **kwargs) + text + colorama.Style.RESET_ALL
+
 
 def normpath(x):
   return os.path.normpath(os.path.abspath(os.path.expanduser(x)))

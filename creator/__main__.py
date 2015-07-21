@@ -29,6 +29,8 @@ import subprocess
 import sys
 import traceback
 
+from creator.utils import ttyv
+
 
 parser = argparse.ArgumentParser(prog='creator',
   description='Creator - Meta build system for ninja.')
@@ -64,8 +66,14 @@ parser.add_argument('-a', '--args', help='Additional arguments for all '
   default=[])
 
 
+def log(*args, **kwargs):
+  print(ttyv(fg='yellow'), end='')
+  print('creator:', *args, **kwargs)
+  print(ttyv(reset=True), end='')
+
+
 def call_subprocess(args):
-  print("creator: running", ' '.join(creator.utils.quote(x) for x in args))
+  log("running: " + ' '.join(creator.utils.quote(x) for x in args))
   return subprocess.call(args)
 
 
@@ -133,14 +141,14 @@ def main(argv=None):
     # Print a warning for each specified non-buildable target.
     for target in targets:
       if isinstance(target, creator.unit.Task):
-        print("creator: warning: {0} is a task".format(target.identifier))
+        log("warning: {0} is a task".format(target.identifier))
 
   # If we have any buildable targets specified, no targets specified at
   # all or if we should only export the build definitions, do exactly that.
   if not args.no_export and (args.export or defaults or not targets):
+    log("exporting: {0}".format(args.output))
     with open(args.output, 'w') as fp:
       creator.ninja.export(fp, workspace, unit, defaults)
-    print("creator: exported to {0}".format(args.output))
     if args.export:
       return 0
 
@@ -153,7 +161,7 @@ def main(argv=None):
     # Run each target with its own call to ninja and the tasks in between.
     for target in targets:
       if isinstance(target, creator.unit.Task):
-        print("creator: running task '{0}'".format(target.identifier))
+        log("running task '{0}'".format(target.identifier))
         target.func()
       elif isinstance(target, creator.unit.Target):
         ident = creator.ninja.ident(target.identifier)
