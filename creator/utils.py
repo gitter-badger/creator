@@ -37,7 +37,10 @@ def quote(s):
   """
 
   if os.name == 'nt' and os.sep == '\\':
-    return '"' + s.replace('"', '\\"') + '"'
+    s = s.replace('"', '\\"')
+    if re.search('\s', s):
+      s = '"' + s + '"'
+    return s
   else:
     return shlex.quote(s)
 
@@ -187,7 +190,6 @@ class Shell(object):
 
   def readline(self):
     return self.buffer.readline()
-
 
 
 Cursor = collections.namedtuple('Cursor', 'position lineno colno')
