@@ -1,23 +1,19 @@
 *Creator* - Meta build system for ninja
 =======================================
 
-*Creator* is a Python based meta build system for [ninja][] which are generated from *Unit Scripts*. The project is licensed under the MIT license. Check out the [Wiki][] for more information!
+*Creator* is a simple, pure Python meta build system for [ninja][] with focus on an organised and comprehensible way of specifying the build rules. Unlike GNU Make, Creator is fully modular with namespaces and global and local variables. Build definitions are Python scripts we call *Units*.
 
-Note that Creator is in a very early stage. Contributions, questions and bug reports are welcome!
+Check out the [Wiki][] for more information!
 
 __Features__
 
 - Creator is simple (and pure Python)
 - Exports [ninja][] build rules 
+- Easily extensible, even from a Unit Python script
 - Modular approach to build definitions
 - Built-in set of Unit Scripts for platform independency
 - Full control over the build process from the command-line
 - Mix build definitions with custom tasks (Python functions)
-
-__Quick Reference__
-
-- [Unit Script Functions](https://github.com/creator-build/creator/wiki/Units#unit-script-built-ins)
-- [Macro Functions](https://github.com/creator-build/creator/wiki/Macros#functions)
 
 __Example__
 
