@@ -573,8 +573,7 @@ class Target(object):
       namespace, target = creator.utils.parse_var(target)
       if not namespace:
         namespace = self.unit.identifier
-      identifier = creator.utils.create_var(namespace, target)
-      target = self.unit.workspace.get_target(identifier)
+      target = self.unit.workspace.get_unit(namespace).get_target(target)
     elif not isinstance(target, Target):
       raise TypeError('target must be Target object', type(target))
     if not target.is_setup:
