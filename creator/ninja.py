@@ -25,8 +25,24 @@ import creator.utils
 import re
 
 
-def export(workspace, fp):
-  writer = Writer(fp)
+def export(fp, workspace, unit, default_targets=()):
+  """
+  Exports the build definitions for all units in the :class:`Workspace`
+  to the file-like object *fp*.
+
+  Args:
+    fp (file-like): The file-like object to write to.
+    workspace (Workspace): The workspace to export.
+    unit (Unit): The main unit which should be used to resolve relative
+      identifiers.
+    default_targets (list of str): A list of target names, or None to
+      let ninja build everything on default invokation.
+
+  Raises:
+    ValueError: If any of the targets do not exist.
+  """
+
+  writer = Writer(fp, width=1024)
 
   for unit in sorted(workspace.units.values(), key=lambda x: x.identifier):
     if not unit.targets:
@@ -35,6 +51,24 @@ def export(workspace, fp):
     writer.newline()
     for target in sorted(unit.targets.values(), key=lambda x: x.name):
       target.export(writer)
+
+  if default_targets:
+    defaults = set()
+    for target in default_targets:
+      namespace, varname = creator.utils.parse_var(target)
+      if namespace is None:
+        targets = unit.targets
+      else:
+        targets = workspace.get_unit(namespace).targets
+      if varname not in targets:
+        raise ValueError('no such target', target)
+
+      # Append all output files of the target to the defaults.
+      for entry in targets[varname].command_data:
+        defaults |= set(entry['outputs'])
+
+    # Write the defaults.
+    writer.default(list(defaults))
 
 
 def ident(s):

@@ -489,6 +489,10 @@ class UnitContext(creator.macro.ContextProvider):
       namespace = self.unit.aliases[namespace]
     elif namespace is None:
       namespace = self.unit.identifier
+    else:
+      # Empty namespace specified, the resulting variable
+      # should have no namespace identifier in it.
+      namespace = None
     return creator.utils.create_var(namespace, varname)
 
   def __getitem__(self, name):
