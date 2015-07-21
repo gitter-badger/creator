@@ -245,7 +245,7 @@ class Unit(object):
       tasks = self.workspace.get_unit(namespace).tasks
 
     if task_name not in tasks:
-      raise ValueError('no task such task', task_name)
+      raise ValueError('no such task', task_name)
 
     return tasks[task_name]()
 
@@ -281,14 +281,6 @@ class Unit(object):
     """
 
     return self.context.has_macro(name)
-    namespace, varname = creator.utils.parse_var(name)
-    context = self.context
-    if namespace:
-      try:
-        context = context.get_namespace(namespace)
-      except KeyError:
-        return False
-    return context.has_macro(varname) or self.workspace.context.has_macro(name)
 
   def eval(self, text, supp_context=None, stack_depth=0):
     """

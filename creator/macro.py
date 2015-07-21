@@ -545,9 +545,6 @@ class Parser(object):
       if not varname:
         return None
 
-    if 'ath' in varname:
-      pass
-
     # If its a function call, we need to read in the arguments.
     if is_call:
       args = []
