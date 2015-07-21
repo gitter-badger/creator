@@ -201,7 +201,7 @@ def join(items):
   return ';'.join(item.replace(';', '\\;') for item in items)
 
 
-class Shell(object):
+class Response(object):
   """
   This class represents a subprocess execution and provides some
   function to process the result or even get the complete output.
@@ -212,19 +212,19 @@ class Shell(object):
     OSError: If an error occured executing the command, usually if
       the program could not be found.
     ValueError: If *command* is an empty list.
-    Shell.ExitCodeError: If the program exited with a non-zero exit-code.
+    Response.ExitCodeError: If the program exited with a non-zero exit-code.
   """
 
   class ExitCodeError(Exception):
     pass
 
-  def __init__(self, command):
+  def __init__(self, command, shell=False):
     if not command:
       raise ValueError('empty command sequence')
-    super(Shell, self).__init__()
+    super().__init__()
     self.command = command
     self.process = subprocess.Popen(command, stdout=subprocess.PIPE,
-      stderr=subprocess.STDOUT, shell=False)
+      stderr=subprocess.STDOUT, shell=shell)
     self.content = self.process.communicate()[0].decode()
     self.buffer = io.StringIO(self.content)
     self.returncode = self.process.returncode

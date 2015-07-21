@@ -23,6 +23,7 @@ import creator.ninja
 import creator.utils
 import os
 import shlex
+import subprocess
 import sys
 import warnings
 import weakref
@@ -191,9 +192,10 @@ class Unit(object):
       'raw': creator.macro.TextNode,
       'split': creator.utils.split,
       'shell': self.shell,
+      'shell_get': self.shell_get,
       'target': self.target,
       'task': self.task,
-      'ExitCodeError': creator.utils.Shell.ExitCodeError,
+      'ExitCodeError': creator.utils.Response.ExitCodeError,
     }
 
   def get_identifier(self):
@@ -234,6 +236,17 @@ class Unit(object):
       raise ValueError('no such target', full_ident)
 
     return targets[target]
+
+  def run_unit_script(self, filename):
+    """
+    Executes the Python unit script at *filename* for this unit.
+    """
+
+    with open(filename) as fp:
+      code = compile(fp.read(), filename, 'exec', dont_inherit=True)
+    self.scope['__file__'] = filename
+    self.scope['__name__'] = '__crunit__'
+    exec(code, self.scope)
 
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
@@ -379,27 +392,33 @@ class Unit(object):
       self.aliases[alias] = identifier
     return unit
 
-  def run_unit_script(self, filename):
+  def shell(self, command, shell=True, stack_depth=0):
     """
-    Executes the Python unit script at *filename* for this unit.
-    """
-
-    with open(filename) as fp:
-      code = compile(fp.read(), filename, 'exec', dont_inherit=True)
-    self.scope['__file__'] = filename
-    self.scope['__name__'] = '__crunit__'
-    exec(code, self.scope)
-
-  def shell(self, command, stack_depth=0):
-    """
-    Issues a shell command that is first expanded.
+    Runs *command* attached to the current terminal. *command* is
+    expanded before it is used to spawn a process.
 
     Returns:
-      creator.utils.Shell: The object that contains the request data.
+      int: The exit-code of the process.
     """
 
     command = self.eval(command, stack_depth=stack_depth + 1)
-    return creator.utils.Shell(shlex.split(command))
+    if not shell:
+      command = shlex.split(command)
+    return subprocess.call(command, shell=shell)
+
+  def shell_get(self, command, shell=True, stack_depth=0):
+    """
+    Runs *command* in the shell and returns a :class:`creator.utils.Response`
+    object. *command* is expanded before it is used to spawn a process.
+
+    Returns:
+      creator.utils.Response: The object that contains the response data.
+    """
+
+    command = self.eval(command, stack_depth=stack_depth + 1)
+    if not shell:
+      command = shlex.split(command)
+    return creator.utils.Response(command, shell=shell)
 
   def target(self, func):
     """

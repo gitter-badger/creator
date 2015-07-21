@@ -46,7 +46,7 @@ define('Og', '/Od')
 
 # Detect the Platform Toolset Version and Target Architecture.
 try:
-  line = shell('cl').readline().strip()
+  line = shell_get('cl').readline().strip()
 except OSError:
   # "cl" not found
   pass
