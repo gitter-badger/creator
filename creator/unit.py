@@ -123,19 +123,6 @@ class Workspace(object):
       raise
     return unit
 
-  def find_target(self, target):
-    """
-    Returns the name of a target based on a target identifier.
-    """
-
-    namespace, target = creator.utils.parse_var(target)
-    if namespace not in self.units:
-      raise ValueError('no unit "{0}" loaded'.format(namespace))
-    unit = self.units[namespace]
-    if target not in unit.targets:
-      raise ValueError('no target "{0}" in unit "{1}"'.format(namespace, target))
-    return unit.targets[target]
-
   def setup_targets(self):
     """
     Sets up all targets in the workspace.
@@ -143,7 +130,7 @@ class Workspace(object):
 
     for unit in self.units.values():
       for target in unit.targets.values():
-        if not target.is_setup:
+        if isinstance(target, Target) and not target.is_setup:
           target.do_setup()
 
 
@@ -162,8 +149,9 @@ class Unit(object):
     context (ContextProvider): The local context of the unit.
     aliases (dict of str -> str): A mapping of alias names to fully
       qualified unit identifiers.
-    targets (dict of str -> Target): A dictionary
-      that maps the name of a target to the target object.
+    targets (dict of str -> Target): A dictionary that maps the name of
+      a target to the corresponding :class:`Target` or :class:`Task`
+      object.
     scope (dict): A dictionary that contains the scope in which the unit
       script is being executed.
   """
@@ -175,7 +163,6 @@ class Unit(object):
     self.workspace = workspace
     self.aliases = {'self': self.identifier}
     self.targets = {}
-    self.tasks = {}
     self.context = UnitContext(self)
     self.scope = self._create_scope()
 
@@ -227,6 +214,27 @@ class Unit(object):
       raise TypeError('workspace must be Workspace instance', type(workspace))
     self._workspace = weakref.ref(workspace)
 
+  def get_target(self, target):
+    """
+    Returns:
+      (Target or Task)
+    Raises:
+      ValueError
+    """
+
+    namespace, target = creator.utils.parse_var(target)
+    if namespace is None:
+      namespace = self.identifier
+      targets = self.targets
+    else:
+      targets = self.workspace.get_unit(namespace).targets
+
+    if target not in targets:
+      full_ident = creator.utils.create_var(namespace, target)
+      raise ValueError('no such target', full_ident)
+
+    return targets[target]
+
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
 
@@ -242,14 +250,18 @@ class Unit(object):
 
     namespace, varname = creator.utils.parse_var(task_name)
     if namespace is None:
-      tasks = self.tasks
+      targets = self.targets
     else:
-      tasks = self.workspace.get_unit(namespace).tasks
+      targets = self.workspace.get_unit(namespace).targets
 
-    if task_name not in tasks:
+    try:
+      task = targets[task_name]
+      if not isinstance(task, Task):
+        raise KeyError(task_name)
+    except KeyError:
       raise ValueError('no such task', task_name)
 
-    return tasks[task_name]()
+    return task.func()
 
   def confirm(self, text, stack_depth=0):
     """
@@ -407,13 +419,14 @@ class Unit(object):
     """
     Decorator for Python functions which can be invoked from the Creator
     command-line as tasks. The name of the function is used as task name.
+    The task is internally registered in the :attr:`targets` dictionary.
     """
 
     if not callable(func):
       raise TypeError('func must be callable', type(func))
-    if func.__name__ in self.tasks:
+    if func.__name__ in self.targets:
       raise ValueError('task name already reserved', func.__name__)
-    self.tasks[func.__name__] = func
+    self.targets[func.__name__] = Task(self, func.__name__, func)
     return func
 
 
@@ -540,7 +553,7 @@ class Target(object):
       if not namespace:
         namespace = self.unit.identifier
       identifier = creator.utils.create_var(namespace, target)
-      target = self.unit.workspace.find_target(identifier)
+      target = self.unit.workspace.get_target(identifier)
     elif not isinstance(target, Target):
       raise TypeError('target must be Target object', type(target))
     if not target.is_setup:
@@ -671,6 +684,45 @@ class Target(object):
       phonies.extend(entry['outputs'])
 
     writer.build(creator.ninja.ident(self.identifier), 'phony', phonies)
+
+
+class Task(object):
+  """
+  Represents a task-target that is run from Python.
+  """
+
+  def __init__(self, unit, name, func):
+    if not isinstance(unit, Unit):
+      raise TypeError('unit must be Unit', type(unit))
+    if not isinstance(name, str):
+      raise TypeError('name must be str', type(name))
+    if not callable(func):
+      raise TypeError('func must be callable', type(func))
+    super().__init__()
+    self._unit = weakref.ref(unit)
+    self._name = name
+    self._func = func
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def identifier(self):
+    return creator.utils.create_var(self.unit.identifier, self.name)
+
+  @property
+  def func(self):
+    return self._func
+
+  @property
+  def unit(self):
+    return self._unit()
+
+  @property
+  def workspace(self):
+    return self.unit.workspace
+
 
 
 class WorkspaceContext(creator.macro.MutableContext):

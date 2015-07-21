@@ -49,7 +49,8 @@ def export(fp, workspace, unit, default_targets=()):
     writer.comment('Unit: {0}'.format(unit.identifier))
     writer.newline()
     for target in sorted(unit.targets.values(), key=lambda x: x.name):
-      target.export(writer)
+      if isinstance(target, creator.unit.Target):
+        target.export(writer)
 
   if default_targets:
     defaults = set()

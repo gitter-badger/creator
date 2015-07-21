@@ -30,49 +30,55 @@ import sys
 import traceback
 
 
-parser = argparse.ArgumentParser(
-  prog='creator', description='Creator - software build automation tool')
-parser.add_argument(
-  '-D', '--define', help='Define a global variable that is accessible '
-  'to all unit scripts. If no value is specified, it will be set to '
-  'an empty string.', default=[], action='append')
-parser.add_argument(
-  '-M', '--macro', help='The same as -D, --define but evaluates like '
-  'a macro. Remember that backslashes must be escaped, etc.', default=[],
-  action='append')
-parser.add_argument(
-  '-P', '--unitpath', help='Add an additional path to search for unit '
-  'scripts to the workspace.', default=[], action='append')
-parser.add_argument(
-  '-I', '--identifier', help='The identifier of the unit script to run. '
-  'If it is not specified, the only file with suffix `.crunit` in the current '
-  'working directory is used.')
-subparser = parser.add_subparsers(dest='command')
+parser = argparse.ArgumentParser(prog='creator',
+  description='Creator - Meta build system for ninja.')
+parser.add_argument('-D', '--define', help='Define a global variable that '
+  'is accessible to all unit scripts. If no value is specified, it will be '
+  'set to an empty string.', default=[], action='append')
+parser.add_argument('-M', '--macro', help='The same as -D/--define but '
+  ' evaluates like a macro. Remember that backslashes must be escaped, etc.',
+  default=[], action='append')
+parser.add_argument('-i', '--unitpath', help='Add an additional path to '
+  'search for unit scripts to the workspace.', default=[], action='append')
+parser.add_argument('-u', '--unit', help='The identifier of the unit to '
+  'take as the main build unit. If this argument is omitted, it will be '
+  'determined from the files in the current directory. There must only be '
+  'one unit in the current directory if the automatic detection is used.')
+parser.add_argument('targets', metavar='target', nargs='*', help='One or '
+  'more full or local target or task identifiers to execute. Ninja will be '
+  'invoked separately for each specified target.')
+parser.add_argument('-e', '--export', help='Export the build.ninja file '
+  'only. The specified targets will be the default targets in the file. '
+  'A warning will be printed if any non-targets (ie. tasks) are specified.',
+  action='store_true')
+parser.add_argument('-n', '--no-export', help='Force not to export new '
+  'build definitions. Conflicts with -e/--export.', action='store_true')
+parser.add_argument('-d', '--dry', help='Dry run the unit scripts, but '
+  'do nothing more. Implies -n/--no-export.', action='store_true')
+parser.add_argument('-o', '--output', help='Override the output file of '
+  'the ninja build definitions. By default, the file will be created at '
+  '<build.ninja>. If the <$NinjaOut> variable is specified in a unit, it '
+  'will be used as the output file if this option is omitted.')
+parser.add_argument('-a', '--args', help='Additional arguments for all '
+  'invokations of <ninja> done by Creator.', nargs=argparse.REMAINDER,
+  default=[])
 
 
-ninja_parser = subparser.add_parser('ninja')
-ninja_parser.add_argument('-t', '--target', default=[], action='append',
-  help="Specify one or more default targets to build when ninja is "
-  "invoked without a specific target. If omitted, ninja will build "
-  "everything.")
-ninja_parser.add_argument('-N', '--no-build', action='store_true',
-  help="Don't run ninja after exporting the `ninja.build` file.")
-ninja_parser.add_argument('-D', '--define', default=[], action='append')
-ninja_parser.add_argument('-M', '--macro', default=[], action='append')
-ninja_parser.add_argument('args', nargs='*', default=[],
-  help="Additional arguments for the ninja invocation.")
-
-
-run_parser = subparser.add_parser('run')
-run_parser.add_argument('tasks', nargs='+', help='One or more tasks to run.')
-run_parser.add_argument('-D', '--define', default=[], action='append')
-run_parser.add_argument('-M', '--macro', default=[], action='append')
+def call_subprocess(args):
+  print("creator: running", ' '.join(creator.utils.quote(x) for x in args))
+  return subprocess.call(args)
 
 
 def main(argv=None):
   if argv is None:
     argv = sys.argv[1:]
   args = parser.parse_args(argv)
+
+  if args.no_export and args.export:
+    parser.error('conflicting options -n/--no-export and -e/--export')
+  if args.dry and args.export:
+    parser.error('conflicting options -d/--dry and -e/--export')
+
   workspace = creator.unit.Workspace()
   workspace.path.extend(args.unitpath)
 
@@ -81,6 +87,7 @@ def main(argv=None):
     key, _, value = define.partition('=')
     if key:
       workspace.context[key] = creator.macro.TextNode(value)
+
   for macro in args.macro:
     key, _, value = macro.partition('=')
     if key:
@@ -89,38 +96,72 @@ def main(argv=None):
   # If not Unit Identifier was specified on the command-line,
   # look at the current directory and use the only .crunit that
   # is in there.
-  if not args.identifier:
+  if not args.unit:
     files = glob.glob('*.crunit')
     if not files:
       parser.error('no *.crunit file in the current directory')
     elif len(files) > 1:
       parser.error('multiple *.crunit files in the current '
-        'directory, use -I/--identifier to specify which.')
-    args.identifier = creator.utils.set_suffix(os.path.basename(files[0]), '')
+        'directory, use -u/--unit to specify which.')
+    args.unit = creator.utils.set_suffix(os.path.basename(files[0]), '')
 
-  # Load the unit script.
-  unit = workspace.load_unit(args.identifier)
-
-  # Set up all unit targets.
+  # Load the active unit and set up all targets.
+  unit = workspace.load_unit(args.unit)
   workspace.setup_targets()
 
-  if args.command is None:
+  # Exit if this is just a dry run.
+  if args.dry:
     return 0
-  elif args.command == 'ninja':
-    return cmd_ninja(args, workspace, unit)
-  elif args.command == 'run':
-    for task in args.tasks:
-      unit.run_task(task)
+
+  # Figure the output path for the build definitions.
+  if not args.output:
+    args.output = unit.eval('$self:NinjaOut').strip()
+    if args.output:
+      args.output = creator.utils.normpath(args.output)
+      dirname = os.path.dirname(args.output)
+      if not os.path.isdir(dirname):
+        os.makedirs(dirname)
+      args.output = os.path.relpath(args.output)
+  if not args.output:
+      args.output = 'build.ninja'
+
+  # Collect a list of all targets and tasks.
+  targets = [unit.get_target(x) for x in args.targets]
+  defaults = [t.identifier for t in targets if isinstance(t, creator.unit.Target)]
+
+  if args.export:
+    # Print a warning for each specified non-buildable target.
+    for target in targets:
+      if isinstance(target, creator.unit.Task):
+        print("creator: warning: {0} is a task".format(target.identifier))
+
+  # If we have any buildable targets specified, no targets specified at
+  # all or if we should only export the build definitions, do exactly that.
+  if not args.no_export and (args.export or defaults or not targets):
+    with open(args.output, 'w') as fp:
+      creator.ninja.export(fp, workspace, unit, defaults)
+    print("creator: exported to {0}".format(args.output))
+    if args.export:
+      return 0
+
+  ninja_args = ['ninja', '-f', args.output] + args.args
+
+  # No targets specified on the command-line? Build it all.
+  if not targets:
+    return call_subprocess(ninja_args)
   else:
-    raise RuntimeError('unexpected command', args.command)
+    # Run each target with its own call to ninja and the tasks in between.
+    for target in targets:
+      if isinstance(target, creator.unit.Task):
+        print("creator: running task '{0}'".format(target.identifier))
+        target.func()
+      elif isinstance(target, creator.unit.Target):
+        ident = creator.ninja.ident(target.identifier)
+        res = call_subprocess(ninja_args + [ident])
+        if res != 0:
+          return res
 
-
-def cmd_ninja(args, workspace, unit):
-  with open('build.ninja', 'w') as fp:
-    creator.ninja.export(fp, workspace, unit, args.target)
-  print("creator: exported to build.ninja")
-  if not args.no_build:
-    return subprocess.call(['ninja'] + args.args)
+    return 0
 
 
 if __name__ == "__main__":
