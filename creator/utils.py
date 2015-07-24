@@ -172,7 +172,7 @@ def split(text):
   items = []
   while text:
     index = text.find(';')
-    while index >= 0 and (index - 1) == text.find('\\;', index - 1):
+    while index > 0 and (index - 1) == text.find('\\;', index - 1):
       index = text.find(';', index + 1)
 
     if index < 0:
@@ -182,7 +182,8 @@ def split(text):
       item = text[:index]
       text = text[index + 1:]
 
-    items.append(item.replace('\\;', ';'))
+    if item:
+      items.append(item.replace('\\;', ';'))
   return items
 
 
@@ -198,7 +199,7 @@ def join(items):
     str: The semicolon separated list of the specified *items*.
   """
 
-  return ';'.join(item.replace(';', '\\;') for item in items)
+  return ';'.join(item.replace(';', '\\;') for item in items if item)
 
 
 class Response(object):
