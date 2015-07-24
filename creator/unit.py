@@ -182,6 +182,9 @@ class Unit(object):
       'confirm': self.confirm,
       'define': self.define,
       'defined': self.defined,
+      'e': self.eval,
+      'eq': self.eq,
+      'ne': self.ne,
       'eval': self.eval,
       'exit': sys.exit,
       'extends': self.extends,
@@ -308,6 +311,16 @@ class Unit(object):
     """
 
     return self.context.has_macro(name)
+
+  def eq(self, left, right, stack_depth=0):
+    if isinstance(left, str):
+      left = self.eval(left, stack_depth=stack_depth + 1)
+    elif isinstance(right, str):
+      right = self.eval(right, stack_depth=stack_depth + 1)
+    return left == right
+
+  def ne(self, left, right, stack_depth=0):
+    return not self.eq(left, right, stack_depth=stack_depth+1)
 
   def eval(self, text, supp_context=None, stack_depth=0):
     """
