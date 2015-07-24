@@ -27,11 +27,12 @@ define('compileonly', '/c')
 define('wall', '/Wall')
 define('g', '/Zi /g')
 define('exceptions', '/EHsc')
+define('lnkflags', '/link')
 
 define('include', '$(quotesplit $(addprefix /I,$0))')
 define('define', '$(quotesplit $(addprefix /D,$0))')
 define('libpath', '$(quotesplit $(addprefix /LIBPATH:,$0))')
-define('lib', '$(quotesplit $0)')
+define('lib', '$(quotesplit $(suffix $0,lib))')
 
 define('objout', '/Fo$(quote $0)')
 define('binout', '/Fe$(quote $0)')
