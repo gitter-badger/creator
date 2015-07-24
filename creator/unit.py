@@ -179,6 +179,7 @@ class Unit(object):
       'C': self.context,
       'G': self.workspace.context,
       'run_task': self.run_task,
+      'append': self.append,
       'confirm': self.confirm,
       'define': self.define,
       'defined': self.defined,
@@ -279,6 +280,10 @@ class Unit(object):
       raise ValueError('no such task', task_name)
 
     return task.func()
+
+  def append(self, name, value):
+    # todo: This is a rather dirty implementation. :-)
+    self.define(name, '${' + name + '}' + value)
 
   def confirm(self, text, stack_depth=0):
     """
