@@ -64,6 +64,10 @@ parser.add_argument('-o', '--output', help='Override the output file of '
   'the ninja build definitions. By default, the file will be created at '
   '<build.ninja>. If the <$NinjaOut> variable is specified in a unit, it '
   'will be used as the output file if this option is omitted.')
+parser.add_argument('-c', '--clean', help='Adds the `-t clean` options '
+  'to the ninja invokation.', action='store_true')
+parser.add_argument('-v', '--verbose', help='Adds the `-v` option to '
+  'the inja invokation.', action='store_true')
 parser.add_argument('-a', '--args', help='Additional arguments for all '
   'invokations of <ninja> done by Creator.', nargs=argparse.REMAINDER,
   default=[])
@@ -157,6 +161,10 @@ def main(argv=None):
       return 0
 
   ninja_args = ['ninja', '-f', args.output] + args.args
+  if args.clean:
+    ninja_args.extend(['-t', 'clean'])
+  if args.verbose:
+    ninja_args.append('-v')
 
   # No targets specified on the command-line? Build it all.
   if not targets:
