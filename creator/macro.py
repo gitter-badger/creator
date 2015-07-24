@@ -712,3 +712,10 @@ class Globals:
       message = 'lower expects exactly 1 argument, got {0}'.format(len(args))
       raise TypeError(message)
     return args[0].eval(context, []).lower()
+
+  @Function
+  def capitalize(context, args):
+    if len(args) != 1:
+      message = 'lower expects exactly 1 argument, got {0}'.format(len(args))
+      raise TypeError(message)
+    return string.capwords(args[0].eval(context, []))
