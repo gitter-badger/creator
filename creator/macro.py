@@ -105,10 +105,9 @@ class MutableContext(ContextProvider):
     # Make sure the macro does not contain a reference to itself.
     # It will be resolved by expanding the original value immediately
     # in the expression hierarchy.
-    old_value = self.macros.get(name)
-    if old_value is not None:
-      for ref_name in self.get_aliases(name):
-        value = value.substitute(ref_name, old_value)
+    old_value = self.macros.get(name) or TextNode('')
+    for ref_name in self.get_aliases(name):
+      value = value.substitute(ref_name, old_value)
     self.macros[name] = value
 
   def __delitem__(self, name):
