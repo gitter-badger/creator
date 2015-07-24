@@ -198,6 +198,7 @@ class Unit(object):
       'shell_get': self.shell_get,
       'target': self.target,
       'task': self.task,
+      'warn': self.warn,
       'ExitCodeError': creator.utils.Response.ExitCodeError,
     }
 
@@ -292,8 +293,8 @@ class Unit(object):
 
     text = self.eval(text, stack_depth=stack_depth + 1)
     while True:
-      response = input('[{0}]: {1} [Y/n]'.format(self.identifier, text))
-      response = response.strip().lower()
+      self.info('{0} [Y/n]'.format(text), color='red', end=' ')
+      response = input().strip().lower()
       if response in ('y', 'yes'):
         return True
       elif response in ('n', 'no'):
@@ -376,12 +377,23 @@ class Unit(object):
     return zip(inputs, outputs)
 
   def info(self, *args, **kwargs):
+    color = kwargs.pop('color', 'cyan')
     items = []
     for arg in args:
       if isinstance(arg, str):
         arg = self.eval(arg, stack_depth=1)
       items.append(arg)
-    print(creator.utils.ttyv(fg='cyan'), end='')
+    print(creator.utils.ttyv(fg=color), end='')
+    print('creator: [{0}]'.format(self.identifier), *items, **kwargs)
+    print(creator.utils.ttyv(reset=True), end='')
+
+  def warn(self, *args, **kwargs):
+    items = []
+    for arg in args:
+      if isinstance(arg, str):
+        arg = self.eval(arg, stack_depth=1)
+      items.append(arg)
+    print(creator.utils.ttyv(fg='red'), end='')
     print('creator: [{0}]'.format(self.identifier), *items, **kwargs)
     print(creator.utils.ttyv(reset=True), end='')
 
