@@ -70,7 +70,7 @@ parser.add_argument('-a', '--args', help='Additional arguments for all '
 
 
 def log(*args, **kwargs):
-  print(ttyv(fg='yellow'), end='')
+  print(ttyv(fg='cyan'), end='')
   print('creator:', *args, **kwargs)
   print(ttyv(reset=True), end='')
 
