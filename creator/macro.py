@@ -698,3 +698,17 @@ class Globals:
     items = ';'.join(n.eval(context, []).strip() for n in args)
     items = creator.utils.split(items)
     return creator.utils.join(creator.utils.normpath(x) for x in items)
+
+  @Function
+  def upper(context, args):
+    if len(args) != 1:
+      message = 'upper expects exactly 1 argument, got {0}'.format(len(args))
+      raise TypeError(message)
+    return args[0].eval(context, []).upper()
+
+  @Function
+  def lower(context, args):
+    if len(args) != 1:
+      message = 'lower expects exactly 1 argument, got {0}'.format(len(args))
+      raise TypeError(message)
+    return args[0].eval(context, []).lower()
