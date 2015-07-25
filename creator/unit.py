@@ -47,6 +47,8 @@ class Workspace(object):
     context (ContextProvider): The global macro context.
     units (dict of str -> Unit): A dictionary that maps the full
       identifier of a :class:`Unit` to the actual object.
+    statics (dict of str -> Unit): A dictionary that maps the full
+      normalized filenames of static creator files.
   """
 
   def __init__(self):
@@ -57,6 +59,20 @@ class Workspace(object):
     self.path.extend(os.getenv('CREATORPATH', '').split(os.pathsep))
     self.context = WorkspaceContext(self)
     self.units = {}
+    self.statics = {}
+
+    # If the current user has a `.creator_profile` file in his
+    # home directory, run that file.
+    filename = os.path.join(os.path.expanduser('~'), '.creator_profile')
+    filename = creator.utils.normpath(filename)
+    if os.path.isfile(filename):
+      unit = Unit(os.path.dirname(filename), 'static|' + filename, self)
+      self.statics[filename] = unit
+      try:
+        unit.run_unit_script(filename)
+      except Exception:
+        del self.statics[filename]
+        raise
 
   def get_unit(self, identifier):
     """
@@ -143,6 +159,11 @@ class Unit(object):
   has its own local context as well as a local mapping of unit aliases
   and target declarators.
 
+  Note that this class is also used to execute static creator files.
+  The Unit identifier starts with the text ``'static|'`` and is followed
+  by the filename of the unit. Use :meth:`is_static()` to check if the
+  unit is static.
+
   Attributes:
     project_path (str): The path of the units project directory.
     identifier (str): The full identifier of the unit.
@@ -209,8 +230,9 @@ class Unit(object):
   def set_identifier(self, identifier):
     if not isinstance(identifier, str):
       raise TypeError('identifier must be str', type(identifier))
-    if not creator.utils.validate_identifier(identifier):
-      raise ValueError('invalid unit identifier', identifier)
+    if not identifier.startswith('static|'):
+      if not creator.utils.validate_identifier(identifier):
+        raise ValueError('invalid unit identifier', identifier)
     self._identifier = identifier
 
   def get_workspace(self):
@@ -252,6 +274,9 @@ class Unit(object):
     self.scope['__file__'] = filename
     self.scope['__name__'] = '__crunit__'
     exec(code, self.scope)
+
+  def is_static(self):
+    return self._identifier.startswith('static|')
 
   identifier = property(get_identifier, set_identifier)
   workspace = property(get_workspace, set_workspace)
