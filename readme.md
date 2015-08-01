@@ -15,9 +15,31 @@ __Features__
 - Full control over the build process from the command-line
 - Mix build definitions with custom tasks (Python functions)
 
+__Install__
+
+```
+python3 setup.py build
+sudo python3 setup.py install
+```
+
 __Example__
 
+In an empty hello_world directory create 'src/main.cpp'
+
+```cpp
+~/Desktop/hello_world $ cat src/main.cpp
+#include <stdio.h>
+
+int main(void) {
+    printf("Hello, World!\n");
+    return 0;
+}
+```
+
+Create a '.crunit' file in hello_world such as 'test.crunit'
+
 ```python
+~/Desktop/hello_world $ cat test.crunit
 load('platform', 'p')
 load('compiler', 'c')
 
@@ -30,7 +52,7 @@ define('Program', '$(p:bin $BuildDir/main)')
 @target
 def objects():
   objects.build_each(
-    '$Sources', '$Objects', '$c:cpp $(c:objout $@) $(quote $<)')
+    '$Sources', '$Objects', '$c:cpp $c:compileonly $(c:objout $@) $(quote $<)')
 
 @target
 def program():
@@ -41,6 +63,7 @@ def run():
   shell('$(quote $Program)')
 ```
 
+Use creator to build and run the program
 ```
 ~/Desktop/hello_world $ creator program run
 creator: exporting to: build.ninja
@@ -55,9 +78,11 @@ Hello, World!
 __Requirements__
 
 - Python 3
+- [setuptools][]
 - [ninja][]
 - [colorama][] (optional)
 
+[setuptools]: https://pypi.python.org/pypi/setuptools
 [ninja]: https://github.com/martine/ninja
 [colorama]: https://pypi.python.org/pypi/colorama
 [Wiki]: https://github.com/creator-build/creator/wiki
