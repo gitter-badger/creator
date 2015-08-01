@@ -34,9 +34,7 @@ setuptools.setup(
   py_modules=['creator'],
   packages=setuptools.find_packages('.'),
   package_dir={'': '.'},
-  data_files=[
-    ('creator', glob.glob('creator/builtins/*.crunit')),
-  ],
+  package_data={ 'creator': ['builtins/*.crunit'] },
   scripts=['scripts/creator'],
   classifiers=[
     "Development Status :: 5 - Production/Stable",
