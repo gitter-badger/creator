@@ -1,9 +1,16 @@
 *Creator* - Meta build system for ninja
 =======================================
 
-*Creator* is a simple, pure Python meta build system for [ninja][] with focus on an organised and comprehensible way of specifying the build rules. Unlike GNU Make, Creator is fully modular with namespaces and global and local variables. Build definitions are Python scripts we call *Units*.
+*Creator* is a simple, pure Python meta build system for [ninja][] with focus
+on an organised and comprehensible way of specifying the build rules. Unlike
+GNU Make, Creator is fully modular with namespaces and global and local
+variables. Build definitions are Python scripts we call *Units*.
 
 Check out the [Wiki][] for more information!
+
+> __Important__: Creator is in a very early stage and everything can be
+> subject to change! If you want to use Creator, make sure to always use
+> the latest version from the *master* branch.
 
 __Features__
 
@@ -17,8 +24,18 @@ __Features__
 
 __Install__
 
+To always use the latest version, clone the repository and install
+via pip remotely:
+
 ```
-python3 setup.py build
+git clone https://github.com/creator-build/creator.git && cd creator
+sudo pip3 install -e .
+```
+
+Or to install it correctly do either of the two commands
+
+```
+sudo pip3 install .
 sudo python3 setup.py install
 ```
 
@@ -36,10 +53,10 @@ int main(void) {
 }
 ```
 
-Create a '.crunit' file in hello_world such as 'test.crunit'
+Create a '.crunit' file in hello_world such as 'hello_world.crunit'
 
 ```python
-~/Desktop/hello_world $ cat test.crunit
+~/Desktop/hello_world $ cat hello_world.crunit
 load('platform', 'p')
 load('compiler', 'c')
 
@@ -64,16 +81,17 @@ def run():
 ```
 
 Use creator to build and run the program
+
 ```
-~/Desktop/hello_world $ creator program run
+niklas ~/Desktop/hello_world_cpp $ creator program run
 creator: exporting to: build.ninja
-creator: running: ninja -f build.ninja test_program
-[1/2] cl /nologo /EHsc /FoC:\Users\niklas\Desktop\rep...\Users\niklas\Desktop\repos\creator\test\src\main.cpp
-main.cpp
-[2/2] cl /nologo /EHsc /FeC:\Users\niklas\Desktop\rep...\niklas\Desktop\repos\creator\test\build\obj\main.obj
-creator: running task 'test:run'
+creator: running: ninja -f build.ninja
+[2/2] clang++ -o /Users/niklas/Desktop/hello_wor.../niklas/Desktop/hello_world_cpp/build/obj/main.o
+creator: running task 'hello_world:run'
 Hello, World!
 ```
+
+See also: [*creator-build/hello_world_cpp*](https://github.com/creator-build/hello_world_cpp)
 
 __Requirements__
 
