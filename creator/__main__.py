@@ -29,7 +29,7 @@ import subprocess
 import sys
 import traceback
 
-from creator.utils import ttyv
+from creator.utils import term_print
 
 
 parser = argparse.ArgumentParser(prog='creator',
@@ -74,9 +74,8 @@ parser.add_argument('-a', '--args', help='Additional arguments for all '
 
 
 def log(*args, **kwargs):
-  print(ttyv(fg='cyan'), end='')
-  print('creator:', *args, **kwargs)
-  print(ttyv(reset=True), end='')
+  kwargs.setdefault('fg', 'cyan')
+  term_print('creator:', *args, **kwargs)
 
 
 def call_subprocess(args):
@@ -153,7 +152,6 @@ def main(argv=None):
   # If we have any buildable targets specified, no targets specified at
   # all or if we should only export the build definitions, do exactly that.
   if not args.no_export and (args.export or defaults or not targets):
-    from creator.utils import ttyf
     log("exporting to: {0}".format(args.output))
     with open(args.output, 'w') as fp:
       creator.ninja.export(fp, workspace, unit, defaults)

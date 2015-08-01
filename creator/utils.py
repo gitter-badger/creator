@@ -33,7 +33,7 @@ else:
   colorama.init()
 
 
-def ttyv(fg=None, bg=None, attr=(), reset=False):
+def term_stylize(fg=None, bg=None, attr=(), reset=False):
   """
   Generates ANSI escape sequences for the specified settings.
 
@@ -64,7 +64,7 @@ def ttyv(fg=None, bg=None, attr=(), reset=False):
   return s
 
 
-def ttyf(text, *args, **kwargs):
+def term_format(text, *args, **kwargs):
   """
   The same as :meth:`ttyv` but takes *text* and wraps it in the
   specified tty visual settings and appends a reset command.
@@ -73,6 +73,25 @@ def ttyf(text, *args, **kwargs):
   if not colorama:
     return text
   return ttyv(*args, **kwargs) + text + colorama.Style.RESET_ALL
+
+
+def term_print(*args, **kwargs):
+  """
+  Like :func:`print`, but colors the output based on the specified
+  *fg*, *bg* and *attr* keyword arguments.
+  """
+
+  fg = kwargs.pop('fg', None)
+  bg = kwargs.pop('bg', None)
+  attr = kwargs.pop('attr', ())
+  if not colorama:
+    print(*args, **kwargs)
+  else:
+    end = kwargs.pop('end', '\n')
+    kwargs['end'] = ''
+    print(term_stylize(fg, bg, attr), end='')
+    print(*args, **kwargs)
+    print(colorama.Style.RESET_ALL, end=end)
 
 
 def normpath(x):

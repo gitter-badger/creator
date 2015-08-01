@@ -407,25 +407,27 @@ class Unit(object):
     return zip(inputs, outputs)
 
   def info(self, *args, **kwargs):
-    color = kwargs.pop('color', 'cyan')
+    kwargs['fg'] = kwargs.pop('color', 'cyan')
+
     items = []
     for arg in args:
       if isinstance(arg, str):
         arg = self.eval(arg, stack_depth=1)
       items.append(arg)
-    print(creator.utils.ttyv(fg=color), end='')
-    print('creator: [{0}]'.format(self.identifier), *items, **kwargs)
-    print(creator.utils.ttyv(reset=True), end='')
+
+    creator.utils.term_print(
+      'creator: INFO [{0}]'.format(self.identifier), *items, **kwargs)
 
   def warn(self, *args, **kwargs):
+    kwargs['fg'] = kwargs.pop('color', 'red')
     items = []
     for arg in args:
       if isinstance(arg, str):
         arg = self.eval(arg, stack_depth=1)
       items.append(arg)
-    print(creator.utils.ttyv(fg='red'), end='')
-    print('creator: [{0}]'.format(self.identifier), *items, **kwargs)
-    print(creator.utils.ttyv(reset=True), end='')
+
+    creator.utils.term_print(
+      'creator: WARN [{0}]'.format(self.identifier), *items, **kwargs)
 
   def load(self, identifier, alias=None):
     """
