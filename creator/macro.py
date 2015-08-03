@@ -648,7 +648,8 @@ class Globals:
     patterns = [n.eval(context, []).strip() for n in args]
     items = []
     for pattern in patterns:
-      items.extend(glob.iglob(pattern))
+      items.extend(creator.utils.glob2(pattern))
+    items.sort()
     return creator.utils.join(items)
 
   @Function

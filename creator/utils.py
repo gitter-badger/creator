@@ -98,6 +98,38 @@ def normpath(x):
   return os.path.normpath(os.path.abspath(os.path.expanduser(x)))
 
 
+def glob2(pattern):
+  """
+  Glob implementation using regex which supports double-wildcard
+  for recursive file pattern matching.
+  """
+
+  # Find the top-most directory that contains no patterns.
+  indices = [pattern.find('*'), pattern.find('?')]
+  indices = filter(lambda x: x >= 0, indices)
+  if not indices:
+    root = '.'
+  else:
+    root = os.path.dirname(pattern[:min(indices)]) or '.'
+
+  pattern = re.escape(pattern)
+  pattern = pattern.replace('\\*\\*', '.*?')
+  pattern = pattern.replace('\\*', '[^/\\\\]*?')
+  pattern = pattern.replace('\\?', '[^/\\\\]')
+  pattern = '^' + pattern + '$'
+
+  regex = re.compile(pattern, re.I)
+  results = []
+  if os.path.isdir(root):
+    for dirname, dirs, files in os.walk(root):
+      for filename in files:
+        filename = os.path.join(dirname, filename)
+        if regex.match(filename):
+          results.append(filename)
+
+  return results
+
+
 def quote(s):
   """
   Better implementation of :func:`shlex.quote` which uses single-quotes
