@@ -21,6 +21,10 @@
 
 import glob
 import setuptools
+import sys
+
+if sys.version_info[0] != 3:
+  raise EnvironmentError('Creator requires Python 3')
 
 long_description = ''
 setuptools.setup(
@@ -34,9 +38,9 @@ setuptools.setup(
   py_modules=['creator'],
   packages=setuptools.find_packages('.'),
   package_dir={'': '.'},
-  data_files=[
-    ('creator', glob.glob('creator/builtins/*.crunit')),
-  ],
+  package_data={
+    'creator': ['builtins/*.crunit']
+    },
   scripts=['scripts/creator'],
   classifiers=[
     "Development Status :: 5 - Production/Stable",
