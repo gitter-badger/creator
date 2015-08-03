@@ -1,6 +1,8 @@
 *Creator* - Meta build system for ninja
 =======================================
 
+[![Join the chat at https://gitter.im/creator-build/creator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/creator-build/creator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 *Creator* is a simple, pure Python meta build system for [ninja][] with focus
 on an organised and comprehensible way of specifying the build rules. Unlike
 GNU Make, Creator is fully modular with namespaces and global and local
@@ -66,16 +68,16 @@ define('Sources', '$(wildcard $ProjectPath/src/*.cpp)')
 define('Objects', '$(p:obj $(move $Sources, $ProjectPath/src, $BuildDir/obj))')
 define('Program', '$(p:bin $BuildDir/main)')
 
-@target
+@target()
 def objects():
   objects.build_each(
     '$Sources', '$Objects', '$c:cpp $c:compileonly $(c:objout $@) $(quote $<)')
 
-@target
+@target(objects)
 def program():
   program.build('$Objects', '$Program', '$c:cpp $(c:binout $@) $(quotesplit $<)')
 
-@task
+@task(program)
 def run():
   shell('$(quote $Program)')
 ```
@@ -91,16 +93,18 @@ creator: running task 'hello_world:run'
 Hello, World!
 ```
 
-See also: [*creator-build/hello_world_cpp*](https://github.com/creator-build/hello_world_cpp)
+See also: [*creator-build/hello_world.cpp*](https://github.com/creator-build/hello_world.cpp)
 
 __Requirements__
 
 - Python 3
 - [setuptools][]
-- [ninja][]
+- [glob2][]
 - [colorama][] (optional)
+- [ninja][]
 
 [setuptools]: https://pypi.python.org/pypi/setuptools
-[ninja]: https://github.com/martine/ninja
+[glob2]: https://pypi.python.org/pypi/glob2
 [colorama]: https://pypi.python.org/pypi/colorama
+[ninja]: https://github.com/martine/ninja
 [Wiki]: https://github.com/creator-build/creator/wiki
