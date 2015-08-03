@@ -1,6 +1,8 @@
 *Creator* - Meta build system for ninja
 =======================================
 
+[![Join the chat at https://gitter.im/winksaville/creator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/winksaville/creator?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 *Creator* is a simple, pure Python meta build system for [ninja][] with focus
 on an organised and comprehensible way of specifying the build rules. Unlike
 GNU Make, Creator is fully modular with namespaces and global and local
